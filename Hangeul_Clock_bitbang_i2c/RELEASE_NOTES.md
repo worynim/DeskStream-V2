@@ -22,6 +22,41 @@
 | **v1.0.12** | 24H 첫 화면 날짜 정렬 | 날짜("...일")도 시·분·초와 같은 우측 열 — `layoutIsDayText()` |
 | **v1.1.0** | 최대 FPS | 부팅 FPS 벤치마크 + 비트 루프 최적화 → **4화면 86.8fps** (원본 34fps) |
 | **v1.1.1** | diff 오버헤드 | 셰도 비교를 타일 워드 비교로 → **4화면 97.3fps** · 벤치마크 기본 끔 |
+| **v1.1.2** | 상시 가동 시 시각 누적 오차 | 원본 v2.9.8의 **NTP 재동기화 감독** 이식 (6h 주기 · WiFi 복구 · 실패 재시도) |
+
+---
+
+## [v1.1.2] — 2026-11-08
+
+### 🐛 상시 가동 시 시각이 조금씩 틀어지는 문제 — NTP 재동기화 감독 이식
+
+**문제**: 원본 `Hangeul_Clock`에서 보고된 "계속 켜 두면 수일~수주 뒤 십여 초 틀어진다"와
+같은 구조였다. `configTzTime()`을 부팅 때(와 웹 TZ 변경 때)만 부르고, 이후에는 SNTP의
+백그라운드 폴링(코어 기본 3시간)에만 의존했다. 그 폴링의 성공 여부를 확인하거나 WiFi
+단절 뒤 다시 무장하는 코드가 없어, 한 번 끊기면 ESP32-C3 크리스털(±10~30ppm = 하루 1~3초)
+오차가 그대로 누적된다. 부팅 동기화 실패(`Time Sync Fail!`) 후 재시도도 없었다.
+원본 v2.9.8 릴리즈 노트의 "남은 과제"에 이 판이 명시되어 있었다.
+
+**수정** — 원본 `Hangeul_Clock` v2.9.8 패치를 그대로 승계
+- `time_sync.h`·`time_sync.cpp`·`time_sync_policy.h` 신설(원본과 동일):
+  - **6시간 주기 강제 재동기화**, 마지막 성공 후 **12시간**이면 즉시 강제.
+  - **WiFi 복구 즉시 재동기화**, 끊긴 동안 60초 간격 `WiFi.reconnect()`.
+  - 미동기 상태 **30초 간격 재시도**, 연속 요청 1분 간격 제한.
+  - SNTP 내부 재요청 주기 3시간 → **1시간**.
+  - IDF weak `sntp_sync_time()` 대체로 보정 직전 드리프트 로그
+    (`[NTP] sync #N drift=+842ms gap=21605s`, **+ = 로컬이 느렸다**).
+- `config.h`: NTP 서버 3개(`kr.pool.ntp.org`/`pool.ntp.org`/`time.nist.gov`) + 정책 상수.
+- `display_manager.h/.cpp`: `applyTimezone()` → `timeSync.applyTimezone()` 단일 경로.
+- `Hangeul_Clock_bitbang_i2c.ino`: `timeSync.begin()`/`timeSync.loop()` 호출.
+  1초 렌더를 `millis()` 주기 → **epoch 초 경계 감지**로 교체하고, 메인 루프에서 최대 5초
+  블로킹하는 `getLocalTime()`을 `time()`/`localtime_r()` 비차단 조회로 바꿨다.
+  IP/도움말 화면에서 세운 강제 갱신 플래그도 잃지 않게 보존.
+
+**검증**
+- `test/test_time_sync_policy.cpp`(원본에서 이식) **30건 통과**.
+- ESP32-C3(`esp32:esp32:nologo_esp32c3_super_mini`) 컴파일 통과 — 1,298,331B / **99%**
+  (여유 약 12KB). 맵 파일에서 `sntp_sync_time`이 `sketch/time_sync.cpp.o`로 링크됨을 확인.
+- 실기 장시간 가동 검증은 아직 하지 않았다.
 
 ---
 

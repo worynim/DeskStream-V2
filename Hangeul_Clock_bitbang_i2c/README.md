@@ -1,4 +1,4 @@
-# Hangeul Clock BB — v1.1.1
+# Hangeul Clock BB — v1.1.2
 
 4× 1.3" OLED 한글 시계. ESP32-C3에서 **4개의 독립 BitBang I2C 버스**로 화면 4개를
 **동시에** 구동합니다. [`Hangeul_Clock`](https://github.com/worynim/DeskStream/tree/main/Hangeul_Clock) (DeskStream 저장소) v2.9.3을 복사해
