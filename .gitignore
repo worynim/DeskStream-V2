@@ -1,0 +1,20 @@
+# DeskStream 저장소의 .gitignore에서 이 폴더에 해당하는 규칙을 그대로 옮겼다
+.DS_Store
+*.pyc
+__pycache__/
+build/
+*.bin
+*.elf
+*.hex
+*.out
+.vscode/
+.idea/
+.gemini/
+.playwright-mcp/
+RISK.md
+PLAN.md
+리뷰.md
+agent_failure_report.md
+antigravity_rules.md
+integrity_guard.py
+AGENTS.md
