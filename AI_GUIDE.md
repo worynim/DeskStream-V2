@@ -137,7 +137,7 @@ void loop() {
 - **버퍼에 직접 쓰는 경우**(`getBufferPtr()`에 비트맵을 memcpy): 소프트웨어 회전이 적용되지 않으므로
   `cfg.rotation = U8G2_R0`으로 두고 필요하면 `setFlip(true)`로 뒤집는다 (Game_Of_Life 방식).
 - 좌우/상하 미러 같은 4가지 반전이 필요하면 `display.screen(i).sendF("c", seg)` / `sendF("c", com)`으로 패널 명령을
-  직접 보낸다 (V1 GPS_DASH·Smart_Info_Station `updateDisplayFlip()` 방식 — V2에서는 아직 실기 확인 전).
+  직접 보낸다 (Smart_Info_Station `updateDisplayFlip()` 참조).
 - `push()`는 전송을 마치고 반환하므로, 반환 직후 버퍼를 다시 그려도 안전하다. `waitIdle()`은 V1 호환용 빈 함수다.
 - 전송은 `push()`를 부른 태스크를 그동안 붙잡는다(풀 프레임 약 10ms). WiFi·BLE와 함께 쓰는 프로젝트는 실기에서 끊김·전송 오류가 없는지 확인한다.
 - 실측 (삭제된 원형 `Hangeul_Clock_bitbang_i2c` v1.1.2, SH1106): 4화면 풀 프레임 10.3ms / **97.3fps**. 설정값 근거는 `ds_display_config.h` 주석.

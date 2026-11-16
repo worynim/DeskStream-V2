@@ -1,5 +1,10 @@
 # DeskStream V2 Release Notes
 
+## [v0.7.0] - 2026-11-17
+### 🌤️ Smart_Info_Station 이식
+- `Smart_Info_Station` v2.11.0: V1 v2.10.1을 DeskStreamV2Core로 이식. 코드 변경은 include와 주석뿐이다.
+- 실기 확인 — 데이터 수신·화면·반전 4종(패널 명령 직접 전송)·버튼 정상.
+
 ## [v0.6.0] - 2026-11-17
 ### 🌍 World_Clock 이식
 - `World_Clock` v0.2.0: V1 v0.1.0을 DeskStreamV2Core로 이식. 코드 변경은 include와 버전 문자열뿐이다.

@@ -23,9 +23,10 @@ DeskStream(V1) 저장소의 구조(공통 라이브러리 + 프로젝트별 스�
 | [ENG_Clock](./ENG_Clock/) — 고화질 폰트 영어 시계 | v1.2.0 | DeskStreamV2Core 사용 · 실기 확인 (2026-11-17) |
 | [Chinese_Clock](./Chinese_Clock/) — 고화질 폰트 중국어 시계 | v1.2.0 | DeskStreamV2Core 사용 · 실기 확인 (2026-11-17) |
 | [World_Clock](./World_Clock/) — 세계 4곳 시계 | v0.2.0 | DeskStreamV2Core 사용 · 실기 확인 (2026-11-17) |
+| [Smart_Info_Station](./Smart_Info_Station/) — 스마트 정보 스테이션 | v2.11.0 | DeskStreamV2Core 사용 · 실기 확인 (2026-11-17) |
 
 V1에서 옮겨 올 프로젝트:
-Smart_Info_Station, Stats_Monitor, Screen_To_OLEDs, Agent_Monitor, DS_DECK, Sound_Visualizer_4_OLEDs, GPS_DASH, Wireless_Analyzer.
+Stats_Monitor, Screen_To_OLEDs, Agent_Monitor, DS_DECK, Sound_Visualizer_4_OLEDs, GPS_DASH, Wireless_Analyzer.
 
 ## 📚 공통 라이브러리
 - [libraries/DeskStreamV2Core](./libraries/DeskStreamV2Core/) (v0.7.0) — 화면 엔진(4버스 동시 BitBang)·버튼·부저·WiFi·NTP·설정 저장.
