@@ -1,0 +1,136 @@
+// worynim@gmail.com
+/**
+ * @file config.h
+ * @brief 프로젝트 전역 설정 (보드 공통 핀·I2C 성능 값은 DeskStreamV2Core)
+ * @details Wi-Fi 초기 접속 정보, 애니메이션 타이밍 등 시스템 상수를 관리
+ * @note [SYNC] 원본: Hangeul_Clock/config.h — [1][3][4][5][8][10][11]은 그대로,
+ *       [2] NTP·[7] 폰트·[9] 표시 형식은 영어판에 맞게 변경
+ */
+#ifndef CONFIG_H
+#define CONFIG_H
+
+#include <Arduino.h>
+#include <DeskStreamV2Core.h>     // 공통 핀 맵(ds_board.h)·화면 엔진·NTP 감독 등 (libraries/DeskStreamV2Core)
+
+// === [1] 하드웨어 핀 ===
+// 버튼·부저·I2C 핀과 OLED 주소는 DeskStreamCore의 ds_board.h(ds::kButtonPins 등)가 정의한다.
+
+// === [2] NTP 및 시간 설정 ===
+// 영어판은 고정 오프셋 대신 POSIX TZ 문자열을 쓴다 (DST 자동 처리, PLAN §6.6).
+// NTP는 UTC로 수신하고 localtime() 시점에 TZ 환경변수가 적용된다.
+// NTP 서버·재동기화 감독 주기(6h/12h/30s/1분)는 ds::TimeSyncConfig 기본값을 쓴다
+// (근거: libraries/DeskStreamV2Core/src/net/ds_time_sync.h).
+// 웹에서 시간대를 설정하기 전까지의 폴백 (config_manager가 NVS에 보관)
+#define DEFAULT_TIMEZONE "KST-9"
+
+// === [3] 디스플레이 설정 ===
+// test/js가 이 숫자를 직접 읽으므로 값을 적어 두고, ds_board.h와 같은지 컴파일 때 확인한다.
+#define NUM_SCREENS 4
+#define SCREEN_WIDTH 128
+#define SCREEN_HEIGHT 64
+static_assert(NUM_SCREENS == ds::kNumScreens && SCREEN_WIDTH == ds::kScreenWidth &&
+              SCREEN_HEIGHT == ds::kScreenHeight, "config.h 화면 치수가 ds_board.h와 다르다");
+
+// === [4] I2C 성능 설정 ===
+// 4버스 동시 BitBang의 반주기 150ns 등은 ds::DisplayConfig 기본값을 쓴다
+// (실측 근거: libraries/DeskStreamV2Core/src/display/ds_display_config.h).
+
+/**
+ * 부팅 시 FPS 벤치마크 실행 여부 (1 = 실행).
+ * @details display.begin() 직후, WiFi 연결 전에 한 번 돈다 (ds::DisplayCore::runFpsBenchmark).
+ *          결과는 시리얼(115200)과 화면 0에 표시된다. 기본은 0(끔) — 측정할 때만 1로 켠다.
+ */
+#define FPS_BENCH_ON_BOOT 0
+#define FPS_BENCH_FRAMES 50      // 케이스당 측정 프레임 수
+#define FPS_BENCH_SHOW_MS 8000   // 결과를 화면에 띄워 두는 시간 (ms)
+
+// === [6] 앱 설정 ===
+#define WIFI_SSID_AP "ENG_Clock_Setup"
+#define UPDATE_INTERVAL_MS 1000  // 1초마다 갱신
+
+// === [7] 폰트 및 설계 설정 ===
+// 한글판의 u8g2_font_unifont_t_korean1은 영문 글리프가 없어 사용 불가.
+// logisoso20_tf는 굵은 산세리프라 14px 폴백 렌더링에서 가독성이 가장 좋음.
+#define ENGLISH_FONT u8g2_font_logisoso20_tf
+#define STATUS_FONT u8g2_font_6x10_tf           // 상태 메시지용 폰트
+
+// 2줄 레이아웃 상수 (PLAN §3.1). 전수 검증으로 확정: 최장 단어 SEVENTEEN(9자).
+#define GLYPH_W        14                        // 픽셀 폭 (피치 — 레이아웃 전용)
+#define GLYPH_H        32                        // 픽셀 높이
+// [레거시] 래스터 폭은 크기별 기하 테이블(renderer_geometry.cpp)이 결정한다.
+//   새 업로드는 6 bytes/row(48px) — GEOM_192B, PLAN §6.13.
+//
+// [미사용 — 펌웨어도 JS도 읽지 않음] 펌웨어 C++/JS 어디에서도 참조되지 않는다. 삭제 가능.
+#define GLYPH_BYTES_PER_ROW 2                    // (구 형식 64B 폰트의 바이트 정렬)
+#define GLYPH_SIZE     (GLYPH_BYTES_PER_ROW * GLYPH_H)  // (구 형식) 64 bytes
+#define LINE_COUNT     2
+//
+// [미사용이나 삭제 금지 — test/js/firmware_wiring_test.mjs의 define()가 config.h를 파싱해
+//  이 값들을 검증 기준값으로 쓴다(없으면 테스트가 예외를 던진다)]
+#define MAX_CHARS_PER_LINE 9                     // 9 × 14 = 126px ≤ 128px — JS 교차검증의 기준값
+#define MAX_LAYOUT_CHARS   18                    // 2줄 × 9자 — JS 교차검증의 기준값
+//
+// GLYPH_W / GLYPH_H는 위와 달리 **실제로도** JS에 미러가 있다(web_pages.h의 동일 상수).
+//   펌웨어 C++는 layout_engine.h의 셀 기하를 대신 쓰므로 직접 참조하지 않는다.
+#define LINE_HEIGHT    32                        // 2 × 32 = 64px
+
+// IP 주소 화면(PLAN §6.12): 도트는 마지막 숫자 옆("192.")에 숫자 하단에 맞춰 찍는다.
+// IP_DOT_SIZE = 도트 한 변(픽셀), IP_DOT_GAP = 마지막 숫자와 도트 사이의 가로 간격.
+#define IP_DOT_SIZE    4
+#define IP_DOT_GAP     8
+
+// 폴백 폰트 baseline. 줄마다 LINE_HEIGHT만큼 이동한다.
+#define FALLBACK_BASELINE 26
+
+// === [8] 애니메이션 설정 ===
+#define ANIMATION_TYPE_NONE 0
+#define ANIMATION_TYPE_SCROLL_UP 1
+#define ANIMATION_TYPE_SCROLL_DOWN 2
+#define ANIMATION_TYPE_VERTICAL_FLIP 3
+#define ANIMATION_TYPE_DITHERED_FADE 4
+#define ANIMATION_TYPE_ZOOM 5
+// 애니메이션 타입 개수 — BTN3 순환(.ino)과 웹 입력 검증(web_manager)이 **반드시 이 값을 쓴다.
+// 애니메이션을 추가할 때 여기를 늘리지 않으면 버튼으로 못 고르는 모드가 조용히 생긴다 (리뷰 §1.2).
+#define ANIMATION_TYPE_COUNT 6
+#define ANIMATION_STEP_DELAY_MS 10 // 고속 프레임
+
+// === [9] 표시 형식 설정 ===
+// CLOCK_MODE_WORD는 한글판의 CLOCK_MODE_HANGUL과 같은 값(0)이다.
+// NVS 키 "mode"의 기존 값 호환을 위해 값을 유지한다.
+#define CLOCK_MODE_WORD 0
+#define CLOCK_MODE_NUMERIC 1
+#define HOUR_FORMAT_12H 0
+#define HOUR_FORMAT_24H 1
+
+// [수정할 사항 3] 24시간제 첫 화면의 날짜 표기 순서. 웹에서 선택한다.
+#define DATE_ORDER_DAY_MONTH 0    // "2/10" (일/월, 기본값)
+#define DATE_ORDER_MONTH_DAY 1    // "10/2" (월/일)
+
+// === [10] 기타 하드코딩 상수 통합 ===
+#define MAX_BITMAP_SIZE 512   // 한글판 512B 폰트도 계속 지원 (숫자 모드)
+#define WEB_PORT 80
+
+// === [11] UI 및 버튼 동작 상수 ===
+#define UI_STAGE_COUNT 3
+#define FONT_SLOT_COUNT 5         // 폰트 슬롯 수 (경로 "/f0"~"/f4", 버튼 순환·웹 입력 검증 상한)
+/**
+ * 슬롯 이름표(폰트 파일 이름)의 최대 길이 — 바이트 단위, UTF-8. 이것을 **넘으면 거부**한다.
+ * @details [A-2④ 수정 — 2026-10-06, 중국어판 §12.14 승계] 예전엔 `name.length() >= 32`
+ *          (실질 31바이트)였다. 그 근거 주석은 "이름을 \"/fN/name.txt\" 파일명으로도 쓴다"였는데
+ *          **사실이 아니다** — 경로는 `"/f" + String(slot) + "/name.txt"` 라는 **리터럴**이고,
+ *          이름은 그 파일의 **내용**으로만 들어간다. 이름이 흘러가는 곳은 전부 길이 제한이 없다:
+ *            · `f.print(name)`  → name.txt 의 내용 (LittleFS)
+ *            · `jsonEscape()`   → /api/config JSON (web_manager 가 출구에서 이스케이프)
+ *            · `SystemSettings::font_name` = **String** (고정 버퍼 아님) → NVS putString
+ *          중국어판 실기에서 `MFXuanRen_Noncommercial-Regular.ttf`(35바이트)가 이 상한에 걸려
+ *          **조용히** 거부됐고 슬롯이 "Empty Slot"으로 보였다. 라이선스 접미사
+ *          (`-Noncommercial-Regular` = 24바이트)가 붙으면 ASCII 이름도 금방 31을 넘는다.
+ *          완전히 없애지는 않는다 — 이름은 JSON 응답과 드롭다운에 실리므로 무한정 받을
+ *          이유가 없다. **늘리려면 이 한 곳만** 고치면 된다.
+ */
+#define FONT_NAME_MAX_LEN 64
+
+#define WIFI_CONFIG_TIMEOUT 120
+#define DEBUG_MODE 1                             // 1: 디버그 정보 출력 활성화, 0: 비활성화
+
+#endif

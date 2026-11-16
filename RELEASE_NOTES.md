@@ -1,5 +1,10 @@
 # DeskStream V2 Release Notes
 
+## [v0.4.0] - 2026-11-17
+### 🕐 ENG_Clock 이식
+- `ENG_Clock` v1.2.0: V1 v1.1.1을 DeskStreamV2Core로 이식. 코드 변경은 include와 주석, 테스트가 읽는 라이브러리 경로뿐이다.
+- JS ↔ 펌웨어 교차 검증 통과. 실기 확인 — 화면·버튼·웹 설정 정상.
+
 ## [v0.3.0] - 2026-11-17
 ### 🕐 Hangeul_Clock 이식
 - `Hangeul_Clock` v2.12.0: V1 v2.11.1을 DeskStreamV2Core로 이식. 코드 변경은 include와 주석, 테스트가 읽는 라이브러리 경로뿐이다.
