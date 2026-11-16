@@ -1,5 +1,10 @@
 # DeskStream V2 Release Notes
 
+## [v0.8.0] - 2026-11-17
+### 📊 Stats_Monitor 이식
+- `Stats_Monitor` v1.7.0: V1 펌웨어 v1.6.1을 DeskStreamV2Core로 이식. 코드 변경은 include와 주석뿐이다. PC 클라이언트(2.4.2)는 그대로 복사했다.
+- 실기 확인 — PC 클라이언트와 BLE 연결, 지표 표시·버튼 정상 (BLE와 BitBang 전송을 함께 쓰는 첫 프로젝트).
+
 ## [v0.7.0] - 2026-11-17
 ### 🌤️ Smart_Info_Station 이식
 - `Smart_Info_Station` v2.11.0: V1 v2.10.1을 DeskStreamV2Core로 이식. 코드 변경은 include와 주석뿐이다.

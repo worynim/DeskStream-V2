@@ -41,6 +41,8 @@ bash scripts/link-arduino-lib.sh        # PC마다 1회 — 스케치북 librari
 
 - 필요한 외부 라이브러리: **U8g2** (WiFi 설정 포털은 라이브러리에 내장 — WiFiManager 불필요)
 - 보드: `esp32:esp32:nologo_esp32c3_super_mini`, CPU 160MHz, USB CDC On Boot = Enabled(보드 기본값)
+- **파티션을 바꾸지 않는다.** 스케치 폴더에 `partitions.csv`가 없는 프로젝트는 `PartitionScheme=default`로 빌드·업로드한다.
+  `huge_app` 스킴을 그대로 올리면 spiffs 위치가 달라져 보드에 저장된 시계 폰트(LittleFS)를 못 쓰게 된다.
 - 앱이 1.25MB를 넘을 수 있으면 스케치 폴더에 **DeskStream 공통 `partitions.csv`** 를 복사하고(V1 저장소 `ENG_Clock/partitions.csv`와 같은 파일)
   IDE에서 `Partition Scheme = Huge APP`를 고른다. app0 2.5MB, spiffs는 `default`와 같은 `0x290000`이라
   다른 프로젝트로 바꿔 올려도 LittleFS 데이터(폰트·설정 파일)가 보존된다.
@@ -139,7 +141,7 @@ void loop() {
 - 좌우/상하 미러 같은 4가지 반전이 필요하면 `display.screen(i).sendF("c", seg)` / `sendF("c", com)`으로 패널 명령을
   직접 보낸다 (Smart_Info_Station `updateDisplayFlip()` 참조).
 - `push()`는 전송을 마치고 반환하므로, 반환 직후 버퍼를 다시 그려도 안전하다. `waitIdle()`은 V1 호환용 빈 함수다.
-- 전송은 `push()`를 부른 태스크를 그동안 붙잡는다(풀 프레임 약 10ms). WiFi·BLE와 함께 쓰는 프로젝트는 실기에서 끊김·전송 오류가 없는지 확인한다.
+- 전송은 `push()`를 부른 태스크를 그동안 붙잡는다(풀 프레임 약 10ms). WiFi(시계 4종·Smart_Info_Station)·BLE(Stats_Monitor)와 함께 쓰는 것은 실기에서 확인됐다.
 - 실측 (삭제된 원형 `Hangeul_Clock_bitbang_i2c` v1.1.2, SH1106): 4화면 풀 프레임 10.3ms / **97.3fps**. 설정값 근거는 `ds_display_config.h` 주석.
 - 화면이 2픽셀 밀려 보이면 모듈 컨트롤러가 SH1106이 아니다(SSD1306/SSD1315) — `cfg.colOffset = 0`.
 - **512x64 한 장 캔버스**(LovyanGFX 1bit 스프라이트 등): `display.pushCanvas((const uint8_t*)sprite.getBuffer(), reverseOrder)`.

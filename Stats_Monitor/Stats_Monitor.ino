@@ -1,0 +1,496 @@
+// worynim@gmail.com
+/**
+ * @file Stats_Monitor.ino
+ * @brief BLE 기반 PC 시스템 자원 정보 표시 펌웨어
+ * @details BLE HID 또는 커스텀 GATT 프로필을 통해 PC로부터 CPU, RAM, 네트워크 상태를 수신하여 OLED에 렌더링
+ */
+#include <Arduino.h>
+#include <BLEDevice.h>
+#include <BLEServer.h>
+#include <BLEUtils.h>
+#include <BLE2902.h>
+#include <ArduinoJson.h>
+#include <Preferences.h>      // 비휘발성 설정 저장용
+#include <DeskStreamV2Core.h>   // 화면 엔진·버튼·부저 (libraries/DeskStreamV2Core)
+
+/**
+ * 🛠 Stats_Monitor: ESP32-C3 기반 4개 OLED 시스템 상태 모니터
+ * - SCL을 공유하는 4버스 BitBang I2C 사용 (DeskStream V2 보드)
+ * - BLE를 통한 실시간 PC 상태 데이터 수신
+ * - 화면 전송·버튼·부저는 DeskStreamV2Core (바뀐 타일만 4버스 동시 전송)
+ * - 버튼(BTN1)을 통한 180도 화면 회전 및 부저 피드백 추가
+ */
+
+// --- [0]~[2] 핀·OLED ---
+// 핀·OLED 주소는 DeskStreamV2Core ds_board.h가 정의한다.
+// U8G2_R0 + 패널 방향 명령(setFlip)으로 회전한다 — 아래 updateDisplayFlip() 참조.
+static ds::DisplayCore display;
+U8G2** screens = display.screens();
+static ds::Buttons buttons;
+static ds::Buzzer buzzer;
+
+// --- [3] 시스템 설정 및 상태 변수 ---
+Preferences prefs;
+int currentFlipMode = 0;         // 0: Normal, 2: 180도 회전
+const int BRIGHTNESS_LEVELS[] = {1, 50, 100, 240}; // 밝기 단계 설정 (사용자 요청: 1, 50, 100, 240)
+const int NUM_BRIGHTNESS_LEVELS = sizeof(BRIGHTNESS_LEVELS) / sizeof(BRIGHTNESS_LEVELS[0]);
+int currentBrightness = BRIGHTNESS_LEVELS[1];      // 기본 밝기 (50)
+bool isHelpMode = false;         // 버튼 도움말 표시 여부
+bool _settingsDirty = false;
+unsigned long _lastSettingsChange = 0;
+
+// --- [4] 부저 — ds::Buzzer가 타이머로 비차단 재생한다 ---
+static const ds::Note BOOT_MELODY[] = {{2093, 80, 30}, {2637, 80, 30}, {3136, 80, 30}, {4186, 200, 0}};
+
+void playBootMelody() {
+  buzzer.playMelody(BOOT_MELODY, sizeof(BOOT_MELODY) / sizeof(BOOT_MELODY[0]));
+}
+
+// --- [5] 화면 회전 (Flip) 제어 ---
+// 패널 명령: 0도 = 0xA0/0xC0, 180도 = 0xA1/0xC8.
+//   U8g2 setFlipMode(1)이 0xA0/0xC0, setFlipMode(0)이 0xA1/0xC8을 보내므로 0도일 때 setFlip(true)다.
+void updateDisplayFlip() {
+  display.setFlip(currentFlipMode != 2);
+}
+
+// --- [6] 밝기 제어 ---
+void updateBrightness() {
+  display.setBrightness(currentBrightness);
+}
+
+// --- [6] 도움말 화면 (Help Screen) ---
+void drawHelp(U8G2 &u, int logicalIdx, int physicalIdx) {
+  u.clearBuffer();
+  u.setFont(u8g2_font_7x14B_tf);
+  char title[16];
+  snprintf(title, sizeof(title), "BTN %d INFO", logicalIdx + 1);
+  drawCentered(u, title, 14, u8g2_font_7x14B_tf);
+  u.drawHLine(0, 17, 128);
+
+  u.setFont(u8g2_font_profont15_tr);
+  const char *info = "";
+  char stateInfo[16] = "";  
+  bool drawStatusSquares = false;
+  int statusLevel = 0;
+
+  switch (logicalIdx) {
+    case 0: 
+      info = "SHORT: FLIP 180"; 
+      snprintf(stateInfo, sizeof(stateInfo), "[ %s ]", currentFlipMode == 2 ? "180 DEG" : "0 DEG");
+      break;
+    case 1: 
+      info = "SHORT: BRIGHTNESS"; 
+      drawStatusSquares = true;
+      statusLevel = 0;
+      for (int k = 0; k < NUM_BRIGHTNESS_LEVELS; k++) {
+        if (currentBrightness >= BRIGHTNESS_LEVELS[k]) {
+          statusLevel = k + 1;
+        }
+      }
+      break;
+    case 2: 
+      info = "SHORT: UNUSED"; 
+      break;
+    case 3: 
+      info = "SHORT: TOGGLE HELP"; 
+      break;
+  }
+  
+  drawCentered(u, info, 34, u8g2_font_profont15_tr);
+  
+  if (drawStatusSquares) {
+    // 밝기 상태 비주얼 바 (사각형 표시)
+    int boxSize = 10;
+    int gap = 4;
+    int totalWidth = (boxSize * 4) + (gap * 3);
+    int startX = (128 - totalWidth) / 2;
+    int startY = 40;
+    for (int j = 0; j < 4; j++) {
+      if (j < statusLevel) {
+        u.drawBox(startX + j * (boxSize + gap), startY, boxSize, boxSize); // 활성화된 칸 (빛남)
+      } else {
+        u.drawFrame(startX + j * (boxSize + gap), startY, boxSize, boxSize); // 비활성화된 칸
+      }
+    }
+  } else if (stateInfo[0] != '\0') {
+    drawCentered(u, stateInfo, 49, u8g2_font_7x14B_tf);
+  }
+  
+  u.setFont(u8g2_font_6x10_tf);
+  drawCentered(u, "DeskStream Stats Mon", 62, u8g2_font_6x10_tf);
+  smartSendBuffer(physicalIdx); 
+}
+
+// --- [6] 비휘발성 설정 저장 (NVS) ---
+void saveSettings() {
+  prefs.begin("stats_mon", false);
+  prefs.putInt("flip", currentFlipMode);
+  prefs.putInt("bright", currentBrightness);
+  prefs.end();
+}
+
+void loadSettings() {
+  prefs.begin("stats_mon", true);
+  currentFlipMode = prefs.getInt("flip", 0);
+  currentBrightness = prefs.getInt("bright", BRIGHTNESS_LEVELS[1]); // 기본값 50 (배열의 두 번째 값)
+  prefs.end();
+  
+  updateDisplayFlip(); // 저장된 회전 상태 적용
+  updateBrightness();  // 저장된 밝기 적용
+}
+
+void markSettingsDirty() {
+  _settingsDirty = true;
+  _lastSettingsChange = millis();
+}
+
+void checkDeferredSave() {
+  if (_settingsDirty && millis() - _lastSettingsChange > 3000) {
+    saveSettings();
+    _settingsDirty = false;
+    Serial.println("[NVS] Settings saved to flash.");
+  }
+}
+
+// --- [7] 하드웨어 버튼 처리 — ds::Buttons (짧게 > 50ms, 길게 > 1000ms) ---
+// 짧게: 50ms·3kHz 비프 후 동작 / 길게: 200ms·2kHz 비프만 (길게 동작은 없다)
+void btn1_short();
+void btn2_short();
+void btn3_short();
+void btn4_short();
+static void onShort0() { buzzer.beep(50, 3000); btn1_short(); }
+static void onShort1() { buzzer.beep(50, 3000); btn2_short(); }
+static void onShort2() { buzzer.beep(50, 3000); btn3_short(); }
+static void onShort3() { buzzer.beep(50, 3000); btn4_short(); }
+static void onLong()   { buzzer.beep(200, 2000); }
+
+void btn1_short() {
+  currentFlipMode = (currentFlipMode == 0) ? 2 : 0;
+  updateDisplayFlip();
+  markSettingsDirty();
+  Serial.printf("[FLIP] Screen rotated to %d degrees.\n", currentFlipMode == 2 ? 180 : 0);
+}
+
+void btn2_short() {
+  int currentIdx = -1;
+  for (int i = 0; i < NUM_BRIGHTNESS_LEVELS; i++) {
+    if (currentBrightness <= BRIGHTNESS_LEVELS[i]) {
+      currentIdx = i;
+      break;
+    }
+  }
+  
+  int nextIdx = (currentIdx + 1) % NUM_BRIGHTNESS_LEVELS;
+  currentBrightness = BRIGHTNESS_LEVELS[nextIdx];
+  
+  updateBrightness();
+  markSettingsDirty();
+  Serial.printf("[BRIGHT] Level changed: %d (Step %d/%d)\n", currentBrightness, nextIdx + 1, NUM_BRIGHTNESS_LEVELS);
+}
+
+void btn3_short() {
+}
+
+void btn4_short() {
+  isHelpMode = !isHelpMode;
+  Serial.printf("[HELP] Help Mode: %s\n", isHelpMode ? "ON" : "OFF");
+}
+
+// --- [4] 화면 전송 ---
+// 바뀐 타일만 4화면에 병렬 전송한다 (ds::DisplayCore::push — 셰도 diff는 엔진 안에 있다).
+//   예전엔 화면 하나씩 바뀐 페이지 전체(128px)를 Wire 800kHz로 동기 전송했다.
+//   인자(화면 번호)는 호출부 호환용이다 — push()는 바뀐 화면을 모두 보낸다.
+void smartSendBuffer(int s_idx) {
+  (void)s_idx;
+  display.push();
+}
+
+// --- [5] BLE 서비스 설정 ---
+#define SERVICE_UUID "6E400001-B5A3-F393-E0A9-E50E24DCCA9E"
+#define CHARACTERISTIC_UUID_RX "6E400002-B5A3-F393-E0A9-E50E24DCCA9E"
+
+BLEServer *pServer = NULL;
+volatile bool deviceConnected = false; 
+volatile bool dataReceived = false; 
+
+// PC로부터 수신할 시스템 상태 구조체
+struct SysStats {
+  float cpu_u = 0, cpu_t = 0;
+  float gpu_u = 0, gpu_t = 0;
+  float ram_u = 0, disk_u = 0;
+  float net_i = 0, net_o = 0;  // Download, Upload (KB/s)
+} stats;
+
+// --- [6] UI 그리기 헬퍼 함수 ---
+
+// 텍스트 중앙 정렬 출력
+void drawCentered(U8G2 &u, const char *text, int y, const uint8_t *font) {
+  u.setFont(font);
+  u.drawStr((128 - u.getStrWidth(text)) / 2, y, text);
+}
+
+// 화면 상단 헤더 및 구분선 출력
+void drawHeader(U8G2 &u, const char *label) {
+  u.setFont(u8g2_font_7x14B_tf);
+  u.drawStr(0, 12, label);
+  u.drawHLine(0, 15, 128);
+}
+
+// 슬림한 프로그레스 바 출력
+void drawSlimBar(U8G2 &u, int y, float p) {
+  u.drawFrame(0, y, 128, 4);
+  int w = (int)(126 * (p / 100.0));
+  if (w > 0) u.drawBox(1, y + 1, w, 2);
+}
+
+// --- [7] 개별 화면 렌더링 함수 ---
+
+// Screen 1: CPU 점유율 및 상태
+void drawCPU(U8G2 &u, int physIdx) {
+  u.clearBuffer();
+  drawHeader(u, "PROCESSOR (CPU)");
+  char b[16];
+  snprintf(b, 16, "%d", (int)stats.cpu_u);
+  drawCentered(u, b, 22, u8g2_font_7_Seg_33x19_mn);
+  u.setFont(u8g2_font_profont15_tr);
+  u.drawStr(100, 50, "%");
+  drawSlimBar(u, 60, stats.cpu_u);
+  smartSendBuffer(physIdx);
+}
+
+// Screen 2: GPU 점유율 (또는 보조 지표)
+void drawGPU(U8G2 &u, int physIdx) {
+  u.clearBuffer();
+  drawHeader(u, "GRAPHICS (GPU)");
+  char b[16];
+  snprintf(b, 16, "%d", (int)stats.gpu_u);
+  drawCentered(u, b, 22, u8g2_font_7_Seg_33x19_mn);
+  u.setFont(u8g2_font_profont15_tr);
+  u.drawStr(100, 50, "%");
+  drawSlimBar(u, 60, stats.gpu_u);
+  smartSendBuffer(physIdx);
+}
+
+// Screen 3: 메모리 및 디스크 사용량
+void drawStorage(U8G2 &u, int physIdx) {
+  u.clearBuffer();
+  drawHeader(u, "MEMORY / DISK");
+  u.setFont(u8g2_font_profont15_tr);
+  u.drawStr(0, 35, "RAM");
+  char b[16];
+  snprintf(b, 16, "%d %%", (int)stats.ram_u);
+  u.drawStr(100, 35, b);
+  drawSlimBar(u, 38, stats.ram_u);
+  u.drawStr(0, 57, "DISK");
+  snprintf(b, 16, "%d %%", (int)stats.disk_u);
+  u.drawStr(100, 57, b);
+  drawSlimBar(u, 60, stats.disk_u);
+  smartSendBuffer(physIdx);
+}
+
+// 네트워크 속도 단위 변환 (KB/s -> Mbps/kbps)
+void formatNetSpeed(float speed_kb, char *out_val, char *out_unit) {
+  float speed_kbps = speed_kb * 8.0; // Byte -> Bit 환산 (kbps)
+  
+  if (speed_kbps >= 1000.0) {
+    snprintf(out_val, 16, "%.1f", speed_kbps / 1000.0);
+    strcpy(out_unit, "Mbps");
+  } else {
+    snprintf(out_val, 16, "%.0f", speed_kbps);
+    strcpy(out_unit, "kbps");
+  }
+}
+
+// Screen 4: 네트워크 트래픽 (UP/DOWN 분리)
+void drawNetwork(U8G2 &u, int physIdx) {
+  u.clearBuffer();
+  drawHeader(u, "NETWORK TRAFFIC");
+  char val[16], unit[8], buf[32];
+
+  // Down speed
+  u.setFont(u8g2_font_profont15_tr);
+  u.drawStr(0, 35, "DOWN");
+  formatNetSpeed(stats.net_i, val, unit);
+  snprintf(buf, 32, "%s %s", val, unit);
+  u.drawStr(128 - u.getStrWidth(buf), 35, buf);
+  float down_p = (stats.net_i / 12500.0) * 100.0;  // 100Mbps 기준
+  drawSlimBar(u, 38, min(down_p, 100.0f));
+
+  // Up speed
+  u.drawStr(0, 57, "UP");
+  formatNetSpeed(stats.net_o, val, unit);
+  snprintf(buf, 32, "%s %s", val, unit);
+  u.drawStr(128 - u.getStrWidth(buf), 57, buf);
+  float up_p = (stats.net_o / 1250.0) * 100.0;  // 10Mbps 기준
+  drawSlimBar(u, 60, min(up_p, 100.0f));
+  smartSendBuffer(physIdx);
+}
+
+// --- [8] BLE 콜백 정의 ---
+
+class MyServerCallbacks : public BLEServerCallbacks {
+  void onConnect(BLEServer *p) {
+    deviceConnected = true;
+  }
+  void onDisconnect(BLEServer *p) {
+    deviceConnected = false;
+    pServer->getAdvertising()->start();  // 연결 끊기면 다시 광고 시작
+  }
+};
+
+class MyCallbacks : public BLECharacteristicCallbacks {
+  void onWrite(BLECharacteristic *pChar) {
+    String val = pChar->getValue();
+    StaticJsonDocument<256> doc;
+    if (deserializeJson(doc, val.c_str()) == DeserializationError::Ok) {
+      if (doc.containsKey("c_u")) stats.cpu_u = doc["c_u"];
+      if (doc.containsKey("c_t")) stats.cpu_t = doc["c_t"];
+      if (doc.containsKey("g_u")) stats.gpu_u = doc["g_u"];
+      if (doc.containsKey("r_u")) stats.ram_u = doc["r_u"];
+      if (doc.containsKey("d_u")) stats.disk_u = doc["d_u"];
+      if (doc.containsKey("n_i")) stats.net_i = doc["n_i"];
+      if (doc.containsKey("n_o")) stats.net_o = doc["n_o"];
+      dataReceived = true;
+    }
+  }
+};
+
+// --- [9] 메인 설정 및 루프 ---
+
+void setup() {
+  Serial.begin(115200);
+
+  // 시리얼 모니터를 열지 않아도 loop()가 멈추지 않게 한다 (ESP32-C3 native USB).
+  //
+  // 원인: 이 보드는 CDCOnBoot=Enabled라 Serial이 USB Serial/JTAG(HWCDC)로 매핑된다.
+  //   HWCDC::write()는 호스트가 포트를 읽어주지 않으면(링버퍼 256B가 가득 찬 뒤)
+  //   xRingbufferSend(..., tx_timeout_ms=100ms)를 max_consec_timeouts(20)회까지
+  //   반복하며 "호출당 최대 2초"를 블로킹한다.
+  //   버튼 핸들러의 Serial.printf() 한 줄이 loop()를 2초 멈추면 뒤따르는 버튼 동작이 늦어진다.
+  //   로그가 ~38B/줄이므로 부팅 로그 + 버튼 5~6회면 256B가 차서 증상이 시작되며,
+  //   호스트가 읽지 않는 한 계속 차 있으므로 리셋 전까지 매번 반복된다.
+  //
+  // 해결: 진단 로그가 메인 루프를 막지 않도록 TX 타임아웃을 0(비차단, 가득 차면 드롭)으로.
+  //   시리얼 모니터를 열어두면 링버퍼가 정상적으로 비워지므로 로그에는 영향이 없다.
+#if ARDUINO_USB_CDC_ON_BOOT
+  Serial.setTxTimeoutMs(0);
+#endif
+
+  // 화면 엔진 초기화 (4버스 동시 BitBang) — U8G2_R0
+  ds::DisplayConfig cfg;
+  cfg.rotation = U8G2_R0;
+  display.begin(cfg);
+
+  // 버튼 및 부저 초기화
+  buttons.begin();
+  buttons.setCallbacks(0, onShort0, onLong);
+  buttons.setCallbacks(1, onShort1, onLong);
+  buttons.setCallbacks(2, onShort2, onLong);
+  buttons.setCallbacks(3, onShort3, onLong);
+  buzzer.begin();
+
+  // 설정 로드 (화면 회전 등)
+  loadSettings();
+
+  // BLE 서버 및 서비스 초기화
+  BLEDevice::init("DeskStream_Stats");
+  pServer = BLEDevice::createServer();
+  pServer->setCallbacks(new MyServerCallbacks());
+  BLEService *pSvc = pServer->createService(SERVICE_UUID);
+  BLECharacteristic *pRx = pSvc->createCharacteristic(CHARACTERISTIC_UUID_RX, BLECharacteristic::PROPERTY_WRITE);
+  pRx->setCallbacks(new MyCallbacks());
+  pSvc->start();
+  pServer->getAdvertising()->start();
+  Serial.println("[SYSTEM] Stats Monitor Ready.");
+
+  // 부팅 멜로디 (ds::Buzzer가 타이머로 재생하므로 loop() 진입 시점과 무관하게 박자가 지켜진다)
+  playBootMelody();
+}
+
+void loop() {
+  // 1. 하드웨어 업데이트 (버튼, 부저, 설정 저장)
+  buttons.update();
+  checkDeferredSave();
+
+  // 2. 화면 매핑 인덱스 계산 (180도 회전 시 4,3,2,1 순서로 반전)
+  int m[4];
+  if (currentFlipMode == 2) {
+    m[0] = 3; m[1] = 2; m[2] = 1; m[3] = 0; // 180도 회전 시 순서 반전
+  } else {
+    m[0] = 0; m[1] = 1; m[2] = 2; m[3] = 3; // 기본 순서
+  }
+
+  // 3. BLE 데이터 수신 및 화면 렌더링
+  static int lastState = -1;
+  static int lastFlipMode = -1;
+  static bool lastHelpMode = false;
+  static int lastBrightness = -1;   // 밝기 상태도 추적(도움말 모드 업데이트용)
+  static bool hasFirstData = false; // 첫 데이터를 받았는지 여부
+
+  int currentState = deviceConnected ? 1 : 0;
+  if (currentState == 0) hasFirstData = false; // 연결 끊기면 데이터 수신 상태 초기화
+
+  // 상태 변경 추적 (밝기 변경 감지 추가)
+  bool stateChanged = (currentState != lastState || currentFlipMode != lastFlipMode || isHelpMode != lastHelpMode || currentBrightness != lastBrightness);
+
+  if (isHelpMode) {
+    // 도움말 모드: 회전과 관계없이 물리적 화면 위치(1~4)에 맞춰 버튼 정보를 고정 표시
+    if (stateChanged) {
+      for (int i = 0; i < 4; i++) {
+        drawHelp(*screens[i], i, i); 
+      }
+      lastState = currentState;
+      lastFlipMode = currentFlipMode;
+      lastHelpMode = isHelpMode;
+      lastBrightness = currentBrightness;
+    }
+  } else if (dataReceived || (stateChanged && hasFirstData)) {
+    // [버그 수정]: U8G2 객체가 메모리를 아끼고자 하나의 전역 1024바이트 버퍼를 돌려막기함.
+    // 다 그린 뒤 한꺼번에 반영하려 하면 결국 마지막에 그려진 "네트워크 화면"만 덮어쓰기되어 4개 화면 모두 네트웍만 뜸!
+    // 따라서 그리는 즉시! 바로 매핑된 물리 패널로 날려버려야(smartSendBuffer) 합니다.
+    drawCPU(*screens[m[0]], m[0]);
+    drawGPU(*screens[m[1]], m[1]);
+    drawStorage(*screens[m[2]], m[2]);
+    drawNetwork(*screens[m[3]], m[3]);
+    
+    if (dataReceived) {
+      dataReceived = false;
+      hasFirstData = true;
+    }
+    
+    lastState = currentState;
+    lastFlipMode = currentFlipMode;
+    lastHelpMode = isHelpMode;
+    lastBrightness = currentBrightness;
+  } else {
+    // 데이터 수신 전 대기 상태: 연결 상태나 회전이 바뀌었을 때만 안내 화면 그림
+    if (stateChanged && !hasFirstData) {
+      if (currentState == 1) {
+        // BLE 연결됨, 클라이언트에서 데이터 데이터가 오기를 기다리는 중
+        for (int i = 0; i < 4; i++) {
+          U8G2 *u = screens[m[i]];
+          u->clearBuffer();
+          drawCentered(*u, "CONNECTED", 30, u8g2_font_7x14B_tf);
+          drawCentered(*u, "Waiting for Data..", 48, u8g2_font_profont15_tr);
+          smartSendBuffer(m[i]);
+        }
+      } else {
+        // 연결 안됨 (부팅 직후 또는 연결 끊김) -> 클라이언트 실행 메시지 표시
+        const char *titles[4] = { "DeskStream", "SYSTEM STATS", "PLEASE RUN", "BLE READY" };
+        const char *subs[4] = { "Stats Monitor", "WAITING...", "PC CLIENT APP", "Searching..." };
+        for (int i = 0; i < 4; i++) {
+          U8G2 *u = screens[m[i]];
+          u->clearBuffer();
+          drawCentered(*u, titles[i], 30, u8g2_font_7x14B_tf);
+          drawCentered(*u, subs[i], 48, u8g2_font_profont15_tr);
+          smartSendBuffer(m[i]);
+        }
+      }
+      lastState = currentState;
+      lastFlipMode = currentFlipMode;
+      lastHelpMode = isHelpMode;
+      lastBrightness = currentBrightness;
+    }
+  }
+  delay(10); // 루프 주기를 조금 짧게 조정 (버튼 반응성 향상)
+}
