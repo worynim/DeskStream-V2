@@ -7,7 +7,7 @@
  *       앱 로직(버튼·시보·UI 스테이지·NTP)은 원본과 동일하다.
  *         · I2C   : HW/SW 이원화 → 4버스 동시 BitBang (i2c_platform.cpp)
  *         · OLED  : SSD1306 → SSD1315 (display_manager.h)
- *         · 핀맵  : SCL 10 공유 + SDA 5/6/7/8, 버튼 0/1/3/4, 부저 없음 (config.h)
+ *         · 핀맵  : SCL 0 공유 + SDA 2/1/10/7, 버튼 3/5/21/9, 부저 6 (config.h)
  * @note [SYNC] ENG_Clock/ENG_Clock.ino — 고정 오프셋 NTP를 POSIX TZ 기반
  *       DisplayManager::applyTimezone()로 교체
  */
@@ -142,7 +142,7 @@ void setup() {
     pinMode(BB_DIAG_BUTTON_PIN, INPUT_PULLUP);
     delay(300); // 핀 및 하드웨어 안정화 대기
 
-    // 진단 모드 — BTN4를 누른 채 부팅하면 들어간다(돌아오지 않는다).
+    // 진단 모드 — BTN2를 누른 채 부팅하면 들어간다(돌아오지 않는다).
     //   컴파일 스위치가 아니라 **런타임 트리거**다 — 스위치가 되돌아가 시계 대신
     //   진단이 도는 상황을 원천적으로 없앤다 (config.h BB_DIAG_BUTTON_PIN 주석 참조).
     if (bbDiagnosticRequested()) {

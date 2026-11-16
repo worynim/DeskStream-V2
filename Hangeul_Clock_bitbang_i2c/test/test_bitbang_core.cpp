@@ -49,7 +49,7 @@ static uint8_t demodulate(const uint32_t* ones, const uint32_t* zeros, uint8_t p
 }
 
 int main() {
-    const uint8_t sda[4] = {5, 6, 7, 8};   // config.h의 BB_SDA_PIN_1..4와 같은 배치
+    const uint8_t sda[4] = {5, 6, 7, 8};   // 시험용 예시 배치 (순수 함수라 실제 핀맵과 무관)
 
     // --- ① MSB 먼저: 0x80은 첫 비트만 HIGH ---
     {

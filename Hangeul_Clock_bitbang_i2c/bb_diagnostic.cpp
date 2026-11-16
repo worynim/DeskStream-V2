@@ -2,7 +2,7 @@
 /**
  * @file bb_diagnostic.cpp
  * @brief BitBang I2C 하드웨어 진단 — 배선/패널/컨트롤러/코드를 가른다
- * @details **BTN4를 누른 채 부팅**하면 실행된다 (config.h의 BB_DIAG_BUTTON_PIN).
+ * @details **BTN2를 누른 채 부팅**하면 실행된다 (config.h의 BB_DIAG_BUTTON_PIN).
  *
  *          ## v1.0.2에서 고친 진단 자체의 버그 (중요)
  *
@@ -243,7 +243,7 @@ static void diagOwnFramePath() {
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * @brief 부팅 시 BTN4가 눌려 있으면 진단 모드로 들어간다
+ * @brief 부팅 시 BTN2가 눌려 있으면 진단 모드로 들어간다
  * @details `BB_DIAG_HOLD_MS` 동안 계속 눌려 있어야 한다 — 기계 접점 채터링과
  *          우연한 접촉을 배제하기 위함이다. 진단을 원하지 않으면 이 함수는
  *          수 ms 안에 false로 빠져나가므로 부팅이 느려지지 않는다.
@@ -254,12 +254,12 @@ bool bbDiagnosticRequested() {
     const uint32_t t0 = millis();
     while (digitalRead(BB_DIAG_BUTTON_PIN) == LOW) {
         if (millis() - t0 >= BB_DIAG_HOLD_MS) {
-            Serial.println("[DIAG] BTN4 hold detected -> diagnostic mode");
+            Serial.println("[DIAG] BTN2 hold detected -> diagnostic mode");
             return true;
         }
         delay(10);
     }
-    Serial.println("[DIAG] BTN4 released early -> normal boot");
+    Serial.println("[DIAG] BTN2 released early -> normal boot");
     return false;
 }
 
@@ -270,7 +270,7 @@ void runBitBangDiagnostics() {
     Serial.println();
     Serial.println("==================================================");
     Serial.println(" Hangeul_Clock_bitbang_i2c — BitBang 진단 모드");
-    Serial.printf (" v%s / BTN4 트리거 진단\n", FW_VERSION);
+    Serial.printf (" v%s / BTN2 트리거 진단\n", FW_VERSION);
     Serial.println("==================================================");
     Serial.printf(" SCL(공유)=GPIO%u   SDA=GPIO%u/%u/%u/%u\n",
                   (unsigned)BB_SCL_PIN, (unsigned)kSda[0], (unsigned)kSda[1],

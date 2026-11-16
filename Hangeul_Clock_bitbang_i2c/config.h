@@ -14,43 +14,33 @@
 // [BB v1.0.0] 1.3" SSD1315 모듈은 I2C 주소를 바꿀 수 없다(전부 0x3C).
 //   그래서 "2버스 × 2주소" 대신 **4개의 독립 버스**를 만들되, SCL 1개를 공유하고
 //   SDA만 화면별로 분리한다. 5핀으로 4버스를 얻는 구성이다.
-#define BTN1_PIN 0
-#define BTN2_PIN 1
-#define BTN3_PIN 3
-#define BTN4_PIN 4
+//
+// [2026-11-15] DeskStream V2 PCB 핀맵으로 교체. GPIO 0~10, 20, 21을 **전부** 쓴다 — 빈 핀이 없다.
+//   이 펌웨어가 쓰지 않는 핀도 보드에 연결돼 있으므로 다른 용도로 쓰지 않는다:
+//     · GPIO 4  — MIC (ADC1_CH4). C3의 ADC2(GPIO 5)는 continuous 모드를 지원하지 않아 ADC1에 둔다.
+//     · GPIO 8  — NeoPixel 데이터 (스트래핑 핀)
+//     · GPIO 20 — GPS TX → ESP RX
+//     · GPIO 21 — ESP TX → GPS RX. **BTN3과 공유**한다 (버튼 쪽에 1kΩ 직렬 저항).
+//                 평소엔 버튼 입력이고, GPS 설정을 보낼 때만 잠시 UART TX로 쓴다.
+//                 Serial이 UART0(20/21)로 가지 않도록 USB CDC On Boot = Enabled를 유지한다.
+#define BTN1_PIN 3
+#define BTN2_PIN 5
+#define BTN3_PIN 21             // GPS RX와 공유 (위 주석)
+#define BTN4_PIN 9              // 보드 BOOT 버튼 (스트래핑 핀 — 누른 채 리셋하면 다운로드 모드)
 
-#define BB_SCL_PIN 10           // 4버스 공유 클럭
-#define BB_SDA_PIN_1 5          // 물리 OLED1
-#define BB_SDA_PIN_2 6          // 물리 OLED2
-#define BB_SDA_PIN_3 7          // 물리 OLED3 (구 부저핀)
-#define BB_SDA_PIN_4 8          // 물리 OLED4
+#define BB_SCL_PIN 0            // 4버스 공유 클럭
+#define BB_SDA_PIN_1 2          // 물리 OLED1 (스트래핑 핀 — SDA 풀업으로 부팅 시 HIGH 유지)
+#define BB_SDA_PIN_2 1          // 물리 OLED2
+#define BB_SDA_PIN_3 10         // 물리 OLED3
+#define BB_SDA_PIN_4 7          // 물리 OLED4
 
 /**
  * 부저 연결 여부.
- * @details [BB v1.0.0] 개요.md에서 부저 미연결로 확정. 0이면 beep()/멜로디가
- *          no-op으로 컴파일된다(tone() 호출 자체가 사라진다).
+ * @details 0이면 beep()/멜로디가 no-op으로 컴파일된다(tone() 호출 자체가 사라진다).
+ *          [2026-11-15] V2 PCB에는 부저가 GPIO 6에 있다. 1로 바꾸면 소리가 난다.
  */
 #define HAS_BUZZER 0
-
-#if HAS_BUZZER
-/**
- * ⚠ 부저를 켜기 전에 읽을 것 — 이 보드에는 **빈 핀이 없다.**
- *
- * 옛 BUZZER_PIN(GPIO 7)은 지금 **OLED3의 SDA**다. 되돌리면 화면 3이 죽는다.
- * 이 프로젝트가 쓰지 않는 핀은 GPIO 2와 GPIO 9뿐인데,
- *   · GPIO 2 — ESP32-C3 **스트래핑 핀**. 부팅 시 HIGH여야 한다. 부저(능동 부저는
- *     보통 LOW 임피던스)를 달면 부팅이 막힐 수 있다.
- *   · GPIO 9 — 보드의 **BOOT 버튼**. 버튼이 이미 붙어 있다.
- * → 어느 쪽이든 하드웨어 판단이 필요하므로 기본값을 정해 두지 않는다.
- *
- * 방법: config.h에서 BUZZER_PIN을 직접 정의하거나,
- *       `arduino-cli compile --build-property "compiler.cpp.extra_flags=-DBUZZER_PIN=9"`
- *       처럼 빌드 옵션으로 넘긴다.
- */
-#ifndef BUZZER_PIN
-#error "HAS_BUZZER=1 인데 BUZZER_PIN이 정의되지 않았습니다. GPIO 7은 OLED3 SDA라 쓸 수 없습니다 — 위 주석을 보고 핀을 지정하세요."
-#endif
-#endif  // HAS_BUZZER
+#define BUZZER_PIN 6
 
 // === [2] NTP 및 시간 설정 ===
 // 고정 오프셋 대신 POSIX TZ 문자열을 쓴다 (웹에서 설정, DST 자동 처리).
@@ -94,7 +84,7 @@
 /**
  * 화면 순서 뒤집기 (OLED1234 → OLED4321).
  *
- * @details 1이면 `screens[0]`이 **마지막 SDA(GPIO 8)** 에 그려진다.
+ * @details 1이면 `screens[0]`이 **마지막 SDA(BB_SDA_PIN_4)** 에 그려진다.
  *          시계는 화면 0→3 순서로 `[오전오후/날짜][시][분][초]`를 그리므로,
  *          이 스위치가 곧 좌→우 배치를 뒤집는다.
  *
@@ -212,7 +202,11 @@
 
 
 /**
- * 하드웨어 진단 진입 — **BTN4(GPIO 4)를 누른 채 부팅**하면 진단 모드로 들어간다.
+ * 하드웨어 진단 진입 — **BTN2(GPIO 5)를 누른 채 부팅**하면 진단 모드로 들어간다.
+ *
+ * @note [2026-11-15] BTN4에서 BTN2로 옮겼다. BTN4는 이제 GPIO 9(BOOT 스트래핑)라
+ *       누른 채 리셋하면 다운로드 모드로 들어가 펌웨어가 아예 돌지 않는다.
+ *       BTN1(GPIO 3)은 부팅 시 공장 초기화, BTN3(GPIO 21)은 GPS와 공유라 제외했다.
  *
  * @details 왜 컴파일 스위치(BB_DIAG_MODE)를 없앴나:
  *          이 파일은 클라우드 동기화로 **예전 내용으로 되돌아간 사례가 여러 번** 있었다.
@@ -220,10 +214,10 @@
  *          사용자는 그 사실을 모른 채 "화면이 이상하다"고 판단하게 된다.
  *          **런타임 트리거는 되돌아갈 스위치가 없으므로 이 혼동이 원천적으로 사라진다.**
  *
- *   사용법: BTN4를 누른 상태로 전원/리셋 → 시리얼(115200)과 화면을 본다.
- *           BTN4를 누르지 않으면 항상 정상 시계로 부팅한다.
+ *   사용법: BTN2를 누른 상태로 전원/리셋 → 시리얼(115200)과 화면을 본다.
+ *           BTN2를 누르지 않으면 항상 정상 시계로 부팅한다.
  */
-#define BB_DIAG_BUTTON_PIN BTN4_PIN
+#define BB_DIAG_BUTTON_PIN BTN2_PIN
 /** 이 시간 이상 눌린 상태여야 진단으로 들어간다 (기계적 채터링 배제) */
 #define BB_DIAG_HOLD_MS 300
 

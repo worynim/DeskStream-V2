@@ -310,9 +310,9 @@ void DisplayManager::beep(int duration, int freq) {
     xTimerChangePeriod(buzzerTimer, pdMS_TO_TICKS(duration), 0);
     xTimerStart(buzzerTimer, 0);
 #else
-    // [BB v1.0.0] 부저 미연결 → 완전 무음.
-    //   호출부(버튼 콜백·시보)는 그대로 두었다. 부저를 다시 달면 config.h의
-    //   HAS_BUZZER를 1로 바꾸는 것만으로 되살아난다 (단, GPIO 7은 지금 OLED3 SDA다).
+    // HAS_BUZZER 0 → 완전 무음.
+    //   호출부(버튼 콜백·시보)는 그대로 두었다. config.h의
+    //   HAS_BUZZER를 1로 바꾸는 것만으로 되살아난다 (BUZZER_PIN = GPIO 6).
     (void)duration;
     (void)freq;
 #endif
