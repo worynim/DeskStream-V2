@@ -1,5 +1,10 @@
 # DeskStream V2 Release Notes
 
+## [v0.6.0] - 2026-11-17
+### 🌍 World_Clock 이식
+- `World_Clock` v0.2.0: V1 v0.1.0을 DeskStreamV2Core로 이식. 코드 변경은 include와 버전 문자열뿐이다.
+- 호스트 테스트 통과. 실기 확인 — 화면·도시 설정·버튼 정상 (V1의 0.1.0은 실제 보드 확인 전 배포본이었고, 이번이 첫 실기 확인이다).
+
 ## [v0.5.0] - 2026-11-17
 ### 🕐 Chinese_Clock 이식
 - `Chinese_Clock` v1.2.0: V1 v1.1.1을 DeskStreamV2Core로 이식. 코드 변경은 include와 주석, 테스트가 읽는 라이브러리 경로뿐이다.
