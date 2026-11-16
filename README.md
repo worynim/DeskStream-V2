@@ -21,8 +21,9 @@ DeskStream(V1) 저장소의 구조(공통 라이브러리 + 프로젝트별 스�
 | [Universal_Timer](./Universal_Timer/) — 4-OLED 범용 타이머 | v1.3.0 | DeskStreamV2Core 사용 · 실기 확인 (2026-11-17) |
 | [Hangeul_Clock](./Hangeul_Clock/) — 고화질 폰트 한글 시계 | v2.12.0 | DeskStreamV2Core 사용 · 실기 확인 (2026-11-17) |
 | [ENG_Clock](./ENG_Clock/) — 고화질 폰트 영어 시계 | v1.2.0 | DeskStreamV2Core 사용 · 실기 확인 (2026-11-17) |
+| [Chinese_Clock](./Chinese_Clock/) — 고화질 폰트 중국어 시계 | v1.2.0 | DeskStreamV2Core 사용 · 실기 확인 (2026-11-17) |
 
-V1에서 옮겨 올 프로젝트: Chinese_Clock, World_Clock,
+V1에서 옮겨 올 프로젝트: World_Clock,
 Smart_Info_Station, Stats_Monitor, Screen_To_OLEDs, Agent_Monitor, DS_DECK, Sound_Visualizer_4_OLEDs, GPS_DASH, Wireless_Analyzer.
 
 ## 📚 공통 라이브러리
