@@ -1,5 +1,11 @@
 # DeskStream V2 Release Notes
 
+## [v0.2.0] - 2026-11-17
+### 🧩 Game_Of_Life · Universal_Timer 이식
+- `Game_Of_Life` v1.2.0: V1 v1.1.1을 DeskStreamV2Core로 이식. 난수 시드를 `analogRead(0)` → `esp_random()`으로 바꿨다(GPIO 0 = OLED SCL).
+- `Universal_Timer` v1.3.0: V1 v1.2.0을 DeskStreamV2Core로 이식. 코드 변경은 include뿐이다.
+- 둘 다 실기 확인 — 4화면 표시·버튼 4개(GPS와 선을 공유하는 BTN3 포함)·부저 정상.
+
 ## [v0.1.0] - 2026-11-17
 ### 🧱 V1 저장소 구조 이관 + 첫 포팅 (OLED_Wide_test)
 - `libraries/DeskStreamV2Core` v0.7.0: V1 `DeskStreamCore` v0.6.1의 보드 정의(`ds_board.h`)와 화면 전송 계층을

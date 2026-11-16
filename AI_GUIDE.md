@@ -8,7 +8,8 @@
 - 하드웨어: [`HARDWARE.md`](./HARDWARE.md) — ESP32-C3 SuperMini, 1.3" SH1106 128x64 × 4(4버스 BitBang), 버튼 4개, 부저, MIC, NeoPixel, GPS
 - 이 저장소는 DeskStream(V1) 저장소의 프로젝트를 V2 보드로 하나씩 옮기는 중이다. API는 V1 `DeskStreamCore`와 같고
   (`namespace ds`), **보드 정의와 화면 전송 계층만** 다르다. 옮겨 온 프로젝트 목록은 루트 [`README.md`](./README.md).
-- 사용 예(옮겨 온 프로젝트): `OLED_Wide_test`(512x64 LovyanGFX 캔버스)
+- 사용 예(옮겨 온 프로젝트): `OLED_Wide_test`(512x64 LovyanGFX 캔버스), `Game_Of_Life`(버퍼 직접 쓰기·누름 즉시 반응),
+  `Universal_Timer`(이벤트 조회·자동 반복)
 
 ---
 

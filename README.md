@@ -17,9 +17,11 @@ DeskStream(V1) 저장소의 구조(공통 라이브러리 + 프로젝트별 스�
 | 프로젝트 | 버전 | 상태 |
 |:--|:--|:--|
 | [OLED_Wide_test](./OLED_Wide_test/) — 512x64 초광폭 디스플레이 테스트 | v1.4.0 | DeskStreamV2Core 사용 · 실기 확인 (2026-11-17) |
+| [Game_Of_Life](./Game_Of_Life/) — 512x64 생명 게임 | v1.2.0 | DeskStreamV2Core 사용 · 실기 확인 (2026-11-17) |
+| [Universal_Timer](./Universal_Timer/) — 4-OLED 범용 타이머 | v1.3.0 | DeskStreamV2Core 사용 · 실기 확인 (2026-11-17) |
 | [Hangeul_Clock_bitbang_i2c](./Hangeul_Clock_bitbang_i2c/) — 한글 시계 (BitBang 원형) | v1.1.2 | 자체 전송 코드 사용. V1 `Hangeul_Clock`을 DeskStreamV2Core로 옮긴 뒤 대체 예정 |
 
-V1에서 옮겨 올 프로젝트: Game_Of_Life, Universal_Timer, Hangeul_Clock, ENG_Clock, Chinese_Clock, World_Clock,
+V1에서 옮겨 올 프로젝트: Hangeul_Clock, ENG_Clock, Chinese_Clock, World_Clock,
 Smart_Info_Station, Stats_Monitor, Screen_To_OLEDs, Agent_Monitor, DS_DECK, Sound_Visualizer_4_OLEDs, GPS_DASH, Wireless_Analyzer.
 
 ## 📚 공통 라이브러리
