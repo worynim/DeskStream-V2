@@ -3,23 +3,16 @@
  * @file display_manager.cpp
  * @brief 고수준 디스플레이 및 UI 스테이지 관리 클래스 구현
  * @details 4개 OLED 디스플레이 제어, 부저 피드백, UI 상태 전환 로직 구현
- * @note [SYNC] ENG_Clock/display_manager.cpp — applyTimezone() 추가
  */
 #include "display_manager.h"
 #include "config.h"          // FONT_SLOT_COUNT
 #include "renderer_layout.h" // layoutIsDayText() — 제목 화면의 우측 정렬 판정
-#include "frame_diff.h"      // fdDiffPage() — 셰도 버퍼 타일 diff (순수 로직)
-#include "time_sync.h"       // applyTimezone()의 실제 SNTP/TZ 적용 (감독 서비스와 단일 경로)
 #include "LittleFS.h"
-#include <freertos/FreeRTOS.h>
-#include <freertos/timers.h>
 
 DisplayManager display;
 
 // 시보 표시용 종 모양 아이콘 (8x8)
 static const uint8_t bell_icon[] = { 0x18, 0x3C, 0x3C, 0x3C, 0xFF, 0xDB, 0x18, 0x00 };
-
-// 하위 레벨 I2C 콜백 및 설정은 i2c_platform.cpp로 이관됨
 
 /**
  * @brief 눈 조립용 결정적 시드 조합
@@ -33,63 +26,35 @@ static uint16_t snowSeed(uint8_t transitionId, int screenIdx, int slot, int x) {
     return (uint16_t)(transitionId * 7919 + screenIdx * 131 + slot * 17 + x * 3);
 }
 
-#if HAS_BUZZER
-static void buzzerTimerCallback(TimerHandle_t xTimer) {
-    noTone(BUZZER_PIN);
-    digitalWrite(BUZZER_PIN, LOW);
-}
-#endif
-
 // DisplayManager 메서드 구현
-// [BB v1.0.0] 4화면 전부 SSD1315 드라이버 + 커스텀 byte_cb(4버스 동시 BitBang).
-//   핀 번호는 U8X8_PIN_NONE으로 둔다 — U8g2가 핀을 만지지 않고, 우리 콜백이
-//   화면 인덱스로 버스를 고른다. (U8g2는 콜백에 버스 번호를 넘겨주지 않으므로
-//   화면마다 byte_cb를 따로 등록하는 수밖에 없다)
-DisplayManager::DisplayManager() : 
-    u8g2_1(U8G2_R2, 255, 255, U8X8_PIN_NONE), u8g2_2(U8G2_R2, 255, 255, U8X8_PIN_NONE),
-    u8g2_3(U8G2_R2, 255, 255, U8X8_PIN_NONE), u8g2_4(U8G2_R2, 255, 255, U8X8_PIN_NONE) {
-    screens[0] = &u8g2_1; screens[1] = &u8g2_2; screens[2] = &u8g2_3; screens[3] = &u8g2_4;
-}
+DisplayManager::DisplayManager() : screens(core.screens()) {}
 
 void DisplayManager::begin() {
-    for (int i = 0; i < NUM_SCREENS; i++) screens[i]->getU8g2()->tile_buf_ptr = u8g2_buffers[i];
-    
-    // 1. I2C 플랫폼 초기화 (버스 진단 → 동시 전송 드라이버 → 워커 태스크)
-    i2cPlatform.begin();
-    
-    // 2. 화면별 byte_cb 등록 후 U8g2 초기화 시퀀스 전송
-    //    ⚠ 주소는 전부 0x3C다 — setI2CAddress()를 부르지 않는다.
-    //    화면 i가 쓸 **버스**는 BB_BUS_OF_SCREEN(i)가 정한다 —
-    //    좌→우 배치를 뒤집으려면 config.h의 BB_SCREEN_ORDER_REVERSED만 바꾼다.
-    static uint8_t (*const kBbCb[NUM_SCREENS])(u8x8_t*, uint8_t, uint8_t, void*) = {
-        u8x8_byte_bb_0, u8x8_byte_bb_1, u8x8_byte_bb_2, u8x8_byte_bb_3
-    };
-    for (int i = 0; i < NUM_SCREENS; i++) {
-        screens[i]->getU8x8()->byte_cb = kBbCb[BB_BUS_OF_SCREEN(i)];
-        screens[i]->begin();
-    }
-    
-    // 3. 렌더러 초기화
+    // 1. 화면 엔진 (버스 스캔·BitBang 드라이버·U8G2 4개) — 기본값 = 반주기 150ns, U8G2_R2
+    core.begin();
+
+    // 2. 렌더러 초기화
     renderer.setScreens(screens);
 
-    // 4. 설정 매니저 초기화 및 로드
+    // 3. 설정 매니저 초기화 및 로드
     configManager.begin();
     
     for (int i = 0; i < 4; i++) {
-        screens[i]->setFlipMode(configManager.get().is_flipped);
-        screens[i]->sendF("c", configManager.get().is_inverted ? 0xA7 : 0xA6);
-        screens[i]->setContrast(configManager.get().brightness);
         screens[i]->setBitmapMode(1);
         screens[i]->clearBuffer();
         lastTexts[i] = "";
     }
+    // is_flipped는 **하드웨어 flip 명령**과 **화면 배정**(isTitleScreenOf 등) 두 곳에 쓰인다.
+    //   여기서는 앞의 역할만 한다 — 뒤집힌 장착을 상쇄하는 물리 방향 보정이다.
+    //   u8g2는 초기화 시 패널을 0xa1/0xc8(두 축 미러)로 두고, U8G2_R2가 버퍼를
+    //   180° 돌린다. 두 변환이 상쇄되어 **false가 정방향**이 된다.
+    //   ⚠ true로 두면 0xa0/0xc0(미러 없음)이 초기 미러를 취소해 R2의 180°가 남는다.
+    core.setFlip(configManager.get().is_flipped);
+    core.setInversion(configManager.get().is_inverted);
+    core.setBrightness(configManager.get().brightness);
     pushParallel();
 
-#if HAS_BUZZER
-    pinMode(BUZZER_PIN, OUTPUT);
-    digitalWrite(BUZZER_PIN, LOW);
-    buzzerTimer = xTimerCreate("BuzzerTimer", pdMS_TO_TICKS(50), pdFALSE, (void*)0, buzzerTimerCallback);
-#endif
+    _buzzer.begin();
 
     // 슬롯 이름 초기 캐싱
     for (int i = 0; i < FONT_SLOT_COUNT; i++) {
@@ -109,9 +74,7 @@ void DisplayManager::begin() {
 void DisplayManager::setFlipDisplay(bool flip) {
     configManager.get().is_flipped = flip;
     configManager.setDirty();
-    for (int i = 0; i < 4; i++) {
-        screens[i]->setFlipMode(flip);
-    }
+    core.setFlip(flip);
     setForceUpdate(true);
 }
 
@@ -151,9 +114,9 @@ void DisplayManager::setAnimMode(uint8_t mode) {
 
 void DisplayManager::applyTimezone() {
     // 실제 TZ 적용과 SNTP (재)시작은 time_sync 서비스가 한다.
-    //   [2026-11-08, 원본 v2.9.8 승계] 주기 재동기화·WiFi 복구·TZ 변경이 **같은 경로**를
-    //   쓰도록 옮겼다. 경로가 둘로 갈라지면 한쪽만 고쳐져 "웹에서 TZ를 바꾸면 동기화가
-    //   멈춘다" 같은 결함이 생긴다. configTime(오프셋,...)이 TZ를 UTC로 덮어쓰는 함정은
+    //   [2026-11-07] 주기 재동기화·WiFi 복구·TZ 변경이 **같은 경로**를 쓰도록 옮겼다.
+    //   경로가 둘로 갈라지면 한쪽만 고쳐져 "웹에서 TZ를 바꾸면 동기화가 멈춘다" 같은
+    //   결함이 생긴다. configTime(오프셋,...)이 TZ를 UTC로 덮어쓰는 함정은
     //   time_sync.cpp의 startSntp() 주석 참조.
     timeSync.applyTimezone();
     setForceUpdate(true);   // 다음 루프에서 새 시각으로 즉시 재렌더링
@@ -264,18 +227,14 @@ void DisplayManager::refreshNow() {
 void DisplayManager::setInversion(bool invert) {
     configManager.get().is_inverted = invert;
     configManager.setDirty();
-    for (int i = 0; i < 4; i++) {
-        screens[i]->sendF("c", invert ? 0xA7 : 0xA6);
-    }
+    core.setInversion(invert);
     setForceUpdate(true);
 }
 
 void DisplayManager::setBrightness(uint8_t brightness) {
     configManager.get().brightness = brightness;
     configManager.setDirty();
-    for (int i = 0; i < 4; i++) {
-        screens[i]->setContrast(brightness);
-    }
+    core.setBrightness(brightness);
 }
 
 // saveConfig()은 ConfigManager로 대체됨
@@ -287,35 +246,12 @@ void DisplayManager::loadBitmapCache() {
 // findChar, getHexKey 로직은 Renderer로 이동됨
 
 void DisplayManager::clearAll() {
-    // 전송이 동기(pushParallel 안에서 끝난다)이므로 대기가 필요 없다 —
-    //   diff와 전송이 같은 태스크에서 순서대로 돈다.
-    u8g2_1.clearBuffer();
-    u8g2_2.clearBuffer();
-    u8g2_3.clearBuffer();
-    u8g2_4.clearBuffer();
-    
-    // 섀도우 버퍼를 무효화하여 pushParallel()이 모든 0픽셀을 강제로 전송하게 함
-    for(int i=0; i<NUM_SCREENS; i++) {
-        i2cPlatform.invalidateShadow(i);
-    }
-    
-    pushParallel();
-    setForceUpdate(true); // 즉시 다음 프레임 그리기 예약
+    core.clearAll();       // 버퍼 지우기 + 셰도 무효화 → 모든 0픽셀 강제 전송 (잔상 제거)
+    setForceUpdate(true);  // 즉시 다음 프레임 그리기 예약
 }
 
 void DisplayManager::beep(int duration, int freq) {
-#if HAS_BUZZER
-    if (buzzerTimer == NULL) return;
-    tone(BUZZER_PIN, freq);
-    xTimerChangePeriod(buzzerTimer, pdMS_TO_TICKS(duration), 0);
-    xTimerStart(buzzerTimer, 0);
-#else
-    // HAS_BUZZER 0 → 완전 무음.
-    //   호출부(버튼 콜백·시보)는 그대로 두었다. config.h의
-    //   HAS_BUZZER를 1로 바꾸는 것만으로 되살아난다 (BUZZER_PIN = GPIO 6).
-    (void)duration;
-    (void)freq;
-#endif
+    _buzzer.beep(duration, freq);
 }
 
 void DisplayManager::setYieldCallback(void (*cb)()) {
@@ -604,194 +540,21 @@ void DisplayManager::renderFlapFrame(int i, int step) {
     drawChimeIcon(i);
 }
 
-/**
- * @brief 한 화면의 U8g2 버퍼를 셰도 버퍼와 비교해, 바뀐 페이지 구간만 콜백에 넘긴다
- * @details [리뷰 §2.1] 이 함수는 4화면이 **똑같이** 도는 부분이다. 이전엔 15줄짜리
- *          블록이 버스마다 복제돼 있어서, 한쪽만 고치면 화면별 전송 범위가 어긋났다.
- *          diff는 순수 계산이고 전송은 버스마다 다르므로, 여기서는 diff만 하고
- *          실제 전송은 onPageDirty에 위임한다 (side effect를 경계에 격리).
- * @param onPageDirty (screen, screenIdx, page, firstTile, tileCount) — 해당 페이지가 더러울 때 한 번 호출
- * @note 셰도 버퍼는 **비교 직후** 갱신한다. 전송은 워커 태스크가 나중에 하므로,
- *      여기서 갱신하지 않으면 같은 프레임이 두 번 전송된다.
- * @note [BB v1.0.0] 4화면이 모두 자기 버스를 가진 BitBang이 되어 콜백이 하나로
- *      통일됐다. `screen` 인자는 남아 있지만 onHwPageDirty는 쓰지 않는다 —
- *      시그니처를 바꾸면 diff 루프와 콜백 쌍을 다시 맞춰야 해서 얻는 것이 없다.
- */
-__attribute__((optimize("O2")))
-static void diffAndForEachPage(int screenIdx, U8G2* screen,
-                               void (*onPageDirty)(U8G2* screen, int screenIdx, int page, int firstTile, int tileCount)) {
-    // [FPS 개선] 바이트마다 get/setShadowData()를 부르던 루프를 타일 워드 비교로 바꿨다.
-    //   구간 규칙(첫~마지막 바뀐 타일)과 셰도 갱신 시점(비교 직후)은 그대로다 — frame_diff.h.
-    //   ⚠ getBufferPtr()는 u8g2_buffers(alignas(4))를 가리켜야 한다 (begin()에서 tile_buf_ptr 지정).
-    const uint8_t* buf = screen->getBufferPtr();
-    uint8_t* shadow = i2cPlatform.shadowBuffer((uint8_t)screenIdx);
-    for (int p = 0; p < PAGES_PER_SCREEN; p++) {
-        uint8_t first = 0, count = 0;
-        if (fdDiffPage(buf + p * SCREEN_WIDTH, shadow + p * SCREEN_WIDTH, TILES_PER_PAGE, &first, &count)) {
-            onPageDirty(screen, screenIdx, p, first, count);
-        }
-    }
-}
-
-/** diff 결과를 dirty 장부에 등록만 한다 (전송은 pushParallel이 모아서 한다) */
-#if BB_FRAME_PATH != BB_FRAME_PATH_U8G2
-/**
- * @name 캡처 후 재생 경로의 상태
- * @details [v1.0.6] **dirty 장부(I2CPlatform)를 거치지 않는다.** v1.0.4에서 장부를
- *          경유하도록 바꿨다가 화면이 깨졌고, 진단 4가 "장부 없이 diff 결과를 바로
- *          캡처·재생"하는 형태로 **4버스 동시 전송이 정상 동작함**을 실기에서 확인했다.
- *          그래서 검증된 그 형태로 구현한다.
- */
-static uint8_t g_frameDirty[NUM_SCREENS];                              // 이번 프레임에 보낼 페이지
-static uint8_t g_pageFirst[NUM_SCREENS][PAGES_PER_SCREEN];             // 페이지별 시작 타일
-static uint8_t g_pageCount[NUM_SCREENS][PAGES_PER_SCREEN];             // 페이지별 타일 수
-
-/**
- * 동시 재생 실패를 **한 번만** 시리얼에 알린다.
- * @details 동시 전송이 죽고 순차 폴백으로만 돌면 "화면은 정상인데 느리다"가 되는데,
- *          그 상태를 사용자가 즉시 알 수 있어야 한다 (v1.0.6에서 정확히 이 상태였다).
- */
-static bool g_reportedFallback = false;
-
-/** diff가 페이지를 찾을 때마다 그 구간을 기록한다 (전송은 뒤에서 페이지 단위로 모아서) */
-static void onPageDirtyMark(U8G2* screen, int screenIdx, int page, int firstTile, int tileCount) {
-    (void)screen;
-    g_frameDirty[screenIdx]        |= (uint8_t)(1u << page);
-    g_pageFirst[screenIdx][page]    = (uint8_t)firstTile;
-    g_pageCount[screenIdx][page]    = (uint8_t)tileCount;
-}
-#endif
-
-#if BB_FRAME_PATH == BB_FRAME_PATH_U8G2
-/**
- * @brief U8g2 CAD에 전송을 맡기는 콜백 — 검증된 경로
- * @details diff 도중에 즉시 전송한다. 전송 바이트(명령 순서·열 오프셋·제어바이트)는
- *          전부 U8g2가 만들고, 우리는 버스만 골라 준다.
- */
-static void onU8g2PageDirty(U8G2* screen, int screenIdx, int page, int firstTile, int tileCount) {
-    (void)screenIdx;
-    screen->updateDisplayArea(firstTile, page, tileCount, 1);
-}
-#endif
-
-/**
- * @brief dirty 페이지만 골라 화면들을 전송한다
- *
- * @details 전송 방식은 `config.h`의 `BB_FRAME_PATH`가 고른다. **diff는 두 경로가 동일**하다.
- *
- *  - `BB_FRAME_PATH_CONCURRENT` (**기본**) — **캡처 후 재생**
- *    ① 각 화면의 `updateDisplayArea()`를 캡처 모드로 호출해 **U8g2가 만들 바이트를
- *       그대로** 받는다(명령 순서·열 오프셋·제어바이트 규칙이 전부 U8g2 책임).
- *    ② 캡처분을 트랜잭션 번호끼리 짝지어 **4버스에 동시 전송**한다.
- *    SCL을 공유하므로 참여 화면은 같은 구간(합집합)을 보낸다.
- *    동시 재생이 실패하면 그 페이지는 **검증된 순차 경로로 다시 보낸다**(안전망).
- *
- *    @note 이 형태는 진단 4의 B 단계에서 **실기 정상 동작이 확인**되었다.
- *
- *  - `BB_FRAME_PATH_U8G2` — U8g2에 전송까지 맡긴다. 가장 단순하고 확실하지만
- *    버스별 순차라 화면이 여러 개 바뀔 때 느리다.
- */
-void DisplayManager::pushParallel() {
-#if BB_FRAME_PATH == BB_FRAME_PATH_U8G2
-    // 검증된 경로 — diff가 페이지를 찾는 즉시 그 화면을 전송한다.
-    for (int s = 0; s < NUM_SCREENS; s++) diffAndForEachPage(s, screens[s], onU8g2PageDirty);
-#else
-    // 1) diff — 바뀐 페이지와 구간을 모은다 (셰도 버퍼도 여기서 갱신된다)
-    for (int s = 0; s < NUM_SCREENS; s++) {
-        g_frameDirty[s] = 0;
-        diffAndForEachPage(s, screens[s], onPageDirtyMark);
-    }
-
-    // 2) 페이지마다 참여 화면을 모아 4버스에 동시 전송
-    for (uint8_t p = 0; p < PAGES_PER_SCREEN; p++) {
-        // ⚠ 두 인덱스 공간을 섞지 않는다.
-        //    · g_frameDirty / g_pageFirst / g_pageCount / screens[] = **화면** 인덱스
-        //    · _cap_buf / replayCaptured(busMask) / bitBang            = **버스** 인덱스
-        //   화면 순서를 뒤집으면 screens[i]가 쓰는 버스는 BB_BUS_OF_SCREEN(i)다.
-        //   [v1.0.7 수정] 예전엔 화면 마스크를 그대로 버스 마스크로 넘겨서,
-        //   일부 화면만 바뀔 때 **빈 캡처 버퍼**를 재생하려다 실패하고 매번 순차
-        //   경로로 되돌아갔다(화면은 정상, 속도만 느림). 전체가 바뀔 때(0x0F)만
-        //   우연히 두 공간이 일치해 동시 전송이 됐다.
-        uint8_t busMask = 0;
-        uint8_t first[NUM_SCREENS];   // 화면 인덱스 기준
-        uint8_t count[NUM_SCREENS];
-        for (uint8_t s = 0; s < NUM_SCREENS; s++) {
-            const bool d = (g_frameDirty[s] & (uint8_t)(1u << p)) != 0;
-            first[s] = d ? g_pageFirst[s][p] : 0;
-            count[s] = d ? g_pageCount[s][p] : 0;
-            if (d) busMask |= (uint8_t)(1u << BB_BUS_OF_SCREEN(s));
-        }
-        if (busMask == 0) continue;
-
-        // SCL을 공유하므로 참여 화면은 **같은 구간**을 보내야 한다 → 합집합(화면 기준)
-        uint8_t uFirst = 0, uCount = 0;
-        bbUnionColumnRange(first, count, NUM_SCREENS, &uFirst, &uCount);
-        if (uCount == 0) continue;
-
-        // ① U8g2가 만들 바이트를 캡처한다 (전송하지 않는다).
-        //    각 화면의 캡처는 자기 버스 슬롯(_cap_buf[BB_BUS_OF_SCREEN(s)])에 담긴다.
-        i2cPlatform.captureBegin();
-        for (uint8_t s = 0; s < NUM_SCREENS; s++) {
-            if (!(g_frameDirty[s] & (uint8_t)(1u << p))) continue;
-            screens[s]->updateDisplayArea(uFirst, p, uCount, 1);
-        }
-        i2cPlatform.captureEnd();
-
-        // ② 트랜잭션끼리 짝지어 4버스에 동시 전송 (마스크는 **버스** 기준)
-        const uint8_t okBusMask = i2cPlatform.replayCaptured(busMask);
-
-        // ③ 동시 재생이 실패한 버스가 있으면 **검증된 순차 경로**로 그 화면만 다시 보낸다.
-        //    (한 화면의 배선 고장이 다른 화면까지 멈추지 않게 하는 안전망)
-        if (okBusMask != busMask) {
-            if (!g_reportedFallback) {
-                g_reportedFallback = true;
-                Serial.printf("[I2C] 동시 재생 실패 -> 순차 폴백 (bus=0x%02X ok=0x%02X) "
-                              "err=%u\n", busMask, okBusMask,
-                              (unsigned)i2cPlatform.errorCount());
-            }
-            for (uint8_t s = 0; s < NUM_SCREENS; s++) {
-                if (!(g_frameDirty[s] & (uint8_t)(1u << p))) continue;
-                const uint8_t b = (uint8_t)BB_BUS_OF_SCREEN(s);
-                if (okBusMask & (uint8_t)(1u << b)) continue;
-                screens[s]->updateDisplayArea(uFirst, p, uCount, 1);
-            }
-        }
-    }
-
-    // 오류가 누적되면 버스를 자가 복구한다 — SCL 펄스로 붙잡힌 SDA를 풀어준다.
-    //   BitBang은 stuck-low를 ACK 성공으로 오독할 수 있어, 오류 카운터가 유일한 단서다.
-    if (i2cPlatform.errorCount() > I2C_ERROR_THRESHOLD) i2cPlatform.recoverBus();
-#endif
-}
+// 멜로디는 ds::Buzzer가 타이머로 재생한다 — 예전 tone()+delay()처럼 메인 루프를 막지 않는다.
+//   각 음 = {주파수, 소리 길이, 다음 음까지 쉼} — 예전 delay 간격과 같은 박자다.
+static const ds::Note STARTUP_MELODY[] = {   // Do-Mi-Sol-Do
+    {2093, 100, 20}, {2637, 100, 20}, {3136, 100, 20}, {4186, 100, 20},
+};
+static const ds::Note CHIME_MELODY[] = {     // 경쾌한 '띠링~' (C7 → G7)
+    {2093, 80, 20}, {3136, 150, 10},
+};
 
 void DisplayManager::playStartupMelody() {
-#if HAS_BUZZER
-    int melody[] = {2093, 2637, 3136, 4186}; // Do-Mi-Sol-Do
-    for (int i = 0; i < 4; i++) {
-        tone(BUZZER_PIN, melody[i], 100);
-        delay(120);
-    }
-    noTone(BUZZER_PIN);
-    digitalWrite(BUZZER_PIN, LOW);
-#else
-    // 부저 미연결 — 부팅 시에는 대신 짧게 쉬어 하드웨어가 안정될 시간을 준다.
-    delay(200);
-#endif
+    _buzzer.playMelody(STARTUP_MELODY, sizeof(STARTUP_MELODY) / sizeof(STARTUP_MELODY[0]));
 }
 
 void DisplayManager::playChimeMelody() {
-#if HAS_BUZZER
-    // 경쾌한 '띠링~' 소리 (C7 -> G7)
-    tone(BUZZER_PIN, 2093, 80);  // 도 (C7)
-    delay(100);
-    tone(BUZZER_PIN, 3136, 150); // 솔 (G7)
-    delay(160);
-    noTone(BUZZER_PIN);
-    digitalWrite(BUZZER_PIN, LOW);
-#else
-    // 부저 미연결 — 시보는 화면의 종 아이콘(drawChimeIcon)이 담당한다.
-    //   웹 설정(chime_enabled)과 종 아이콘 로직은 그대로 살아 있다.
-#endif
+    _buzzer.playMelody(CHIME_MELODY, sizeof(CHIME_MELODY) / sizeof(CHIME_MELODY[0]));
 }
 
 
@@ -865,110 +628,3 @@ void DisplayManager::showStatus(const String& msg) {
     U8G2* u8g2 = screens[0]; u8g2->clearBuffer(); u8g2->setFont(STATUS_FONT);
     u8g2->drawStr(0, 10, msg.c_str()); pushParallel();
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// FPS 벤치마크 (config.h FPS_BENCH_ON_BOOT) — 꺼져 있으면 컴파일하지 않는다 (Flash 98%)
-// ─────────────────────────────────────────────────────────────────────────────
-#if FPS_BENCH_ON_BOOT
-
-/** 한 케이스의 측정 결과 */
-struct FpsBenchResult {
-    uint32_t frames;
-    uint32_t totalUs;   // pushParallel() 전체 (diff + 캡처 + 전송)
-    uint64_t wireUs;    // writeConcurrent() 안에서 보낸 시간
-    uint64_t wireBits;  // 선 위의 비트 주기 수
-    uint32_t tx;        // 트랜잭션 수
-    uint32_t errors;    // 측정 중 늘어난 오류 수 (폴백 발생 단서)
-};
-
-/**
- * @brief screenMask에 속한 화면만 매 프레임 전부 바뀌게 그리고 pushParallel()을 잰다
- * @details 0xAA/0x55를 번갈아 채우면 **모든 바이트**가 직전 프레임과 달라져
- *          diff가 8페이지 × 16타일 전부를 잡는다 → 풀 프레임 전송이 강제된다.
- */
-static FpsBenchResult fpsBenchCase(DisplayManager* dm, uint8_t screenMask, uint32_t frames) {
-    U8G2* const* screens = dm->screens;
-    // 시작 상태를 맞춘다: 전 화면을 지우고 한 번 보내 셰도 버퍼를 동기화
-    for (int s = 0; s < NUM_SCREENS; s++) screens[s]->clearBuffer();
-    dm->pushParallel();
-
-    FpsBenchResult r = {};
-    r.frames = frames;
-    // 오류는 드라이버 누적 카운터로 센다. i2cPlatform.errorCount()는 50회를 넘으면
-    //   recoverBus()가 0으로 되돌려, 오류가 많을수록 오히려 적게 집계됐다.
-    const uint32_t err0 = bitBang.errorCount();
-    bitBang.resetStats();
-
-    const uint32_t t0 = micros();
-    for (uint32_t f = 0; f < frames; f++) {
-        const uint8_t pat = (f & 1u) ? 0x55 : 0xAA;
-        for (int s = 0; s < NUM_SCREENS; s++) {
-            if (screenMask & (1u << s)) memset(screens[s]->getBufferPtr(), pat, SCREEN_WIDTH * PAGES_PER_SCREEN);
-        }
-        dm->pushParallel();
-    }
-    r.totalUs  = (uint32_t)(micros() - t0);
-    r.wireUs   = bitBang.statUs();
-    r.wireBits = bitBang.statBits();
-    r.tx       = bitBang.statTx();
-    r.errors   = bitBang.errorCount() - err0;       // NACK·SCL 타임아웃으로 실패한 트랜잭션 수
-    return r;
-}
-
-static void fpsBenchPrint(const char* name, const FpsBenchResult& r) {
-    const float msPerFrame   = (float)r.totalUs / 1000.0f / (float)r.frames;
-    const float fps          = (r.totalUs > 0) ? (1e6f * (float)r.frames / (float)r.totalUs) : 0.0f;
-    const float wireMsFrame  = (float)r.wireUs / 1000.0f / (float)r.frames;
-    const float otherMsFrame = msPerFrame - wireMsFrame;
-    const float sclKHz       = (r.wireUs > 0) ? ((float)r.wireBits * 1000.0f / (float)r.wireUs) : 0.0f;
-    Serial.printf("[FPS] %s\n", name);
-    Serial.printf("[FPS]   %u프레임, 평균 %.2f ms/frame -> %.1f FPS\n",
-                  (unsigned)r.frames, msPerFrame, fps);
-    Serial.printf("[FPS]   전송 %.2f ms + 그 외(diff·캡처) %.2f ms\n", wireMsFrame, otherMsFrame);
-    Serial.printf("[FPS]   실효 SCL %.0f kHz (비트 %llu / 전송 %llu us, 트랜잭션 %u/frame)\n",
-                  sclKHz, (unsigned long long)r.wireBits, (unsigned long long)r.wireUs,
-                  (unsigned)(r.tx / (r.frames ? r.frames : 1)));
-    if (r.errors) Serial.printf("[FPS]   ⚠ 실패 트랜잭션 %u회 — 순차 폴백이 섞여 시간이 늘었다"
-                                " (성공분만 집계되어 SCL·트랜잭션 수도 왜곡)\n", (unsigned)r.errors);
-}
-
-void DisplayManager::runFpsBenchmark() {
-    Serial.printf("[FPS] 벤치마크 시작 — BB_HALF_BIT_NS=%d, CPU %u MHz\n",
-                  (int)BB_HALF_BIT_NS, (unsigned)getCpuFrequencyMhz());
-
-    // 케이스 A: 4화면 동시 / 케이스 B: 화면 0만
-    const FpsBenchResult a = fpsBenchCase(this, 0x0F, FPS_BENCH_FRAMES);
-    const FpsBenchResult b = fpsBenchCase(this, 0x01, FPS_BENCH_FRAMES);
-
-    fpsBenchPrint("A) 4화면 풀 프레임 (동시 전송)", a);
-    fpsBenchPrint("B) 1화면 풀 프레임", b);
-    const float ratio = (b.totalUs > 0) ? ((float)a.totalUs / (float)b.totalUs) : 0.0f;
-    Serial.printf("[FPS] A/B 시간 비 = %.2f  (1.0에 가까울수록 4화면이 동시에 나간다)\n", ratio);
-
-    // 화면에도 띄운다 — USB CDC는 포트를 늦게 열면 부팅 로그를 놓친다
-    const float fpsA = (a.totalUs > 0) ? (1e6f * a.frames / a.totalUs) : 0.0f;
-    const float fpsB = (b.totalUs > 0) ? (1e6f * b.frames / b.totalUs) : 0.0f;
-    const float sclA = (a.wireUs > 0) ? ((float)a.wireBits * 1000.0f / (float)a.wireUs) : 0.0f;
-    char line[32];
-    for (int s = 0; s < NUM_SCREENS; s++) screens[s]->clearBuffer();
-    U8G2* u = screens[0];
-    u->setFont(STATUS_FONT);
-    u->drawStr(0, 10, "FPS BENCH");
-    snprintf(line, sizeof(line), "4scr %.1fms %.0ffps", a.totalUs / 1000.0f / a.frames, fpsA);
-    u->drawStr(0, 24, line);
-    snprintf(line, sizeof(line), "1scr %.1fms %.0ffps", b.totalUs / 1000.0f / b.frames, fpsB);
-    u->drawStr(0, 36, line);
-    snprintf(line, sizeof(line), "SCL %.0fkHz A/B %.2f", sclA, ratio);
-    u->drawStr(0, 48, line);
-    snprintf(line, sizeof(line), "err %u/%u ns%d", (unsigned)a.errors, (unsigned)b.errors,
-             (int)BB_HALF_BIT_NS);
-    u->drawStr(0, 60, line);
-    pushParallel();
-    delay(FPS_BENCH_SHOW_MS);
-
-    for (int s = 0; s < NUM_SCREENS; s++) screens[s]->clearBuffer();
-    pushParallel();
-}
-#endif  // FPS_BENCH_ON_BOOT
-
-// 하위 레벨 I2C 전송 콜백은 i2c_platform.cpp로 이관됨

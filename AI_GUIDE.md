@@ -9,7 +9,7 @@
 - 이 저장소는 DeskStream(V1) 저장소의 프로젝트를 V2 보드로 하나씩 옮기는 중이다. API는 V1 `DeskStreamCore`와 같고
   (`namespace ds`), **보드 정의와 화면 전송 계층만** 다르다. 옮겨 온 프로젝트 목록은 루트 [`README.md`](./README.md).
 - 사용 예(옮겨 온 프로젝트): `OLED_Wide_test`(512x64 LovyanGFX 캔버스), `Game_Of_Life`(버퍼 직접 쓰기·누름 즉시 반응),
-  `Universal_Timer`(이벤트 조회·자동 반복)
+  `Universal_Timer`(이벤트 조회·자동 반복), `Hangeul_Clock`(전 모듈 — WiFi·NTP·설정 저장·웹 설정)
 
 ---
 
@@ -140,7 +140,7 @@ void loop() {
   직접 보낸다 (V1 GPS_DASH·Smart_Info_Station `updateDisplayFlip()` 방식 — V2에서는 아직 실기 확인 전).
 - `push()`는 전송을 마치고 반환하므로, 반환 직후 버퍼를 다시 그려도 안전하다. `waitIdle()`은 V1 호환용 빈 함수다.
 - 전송은 `push()`를 부른 태스크를 그동안 붙잡는다(풀 프레임 약 10ms). WiFi·BLE와 함께 쓰는 프로젝트는 실기에서 끊김·전송 오류가 없는지 확인한다.
-- 실측 (Hangeul_Clock_bitbang_i2c, SH1106): 4화면 풀 프레임 10.3ms / **97.3fps**. 설정값 근거는 `ds_display_config.h` 주석.
+- 실측 (삭제된 원형 `Hangeul_Clock_bitbang_i2c` v1.1.2, SH1106): 4화면 풀 프레임 10.3ms / **97.3fps**. 설정값 근거는 `ds_display_config.h` 주석.
 - 화면이 2픽셀 밀려 보이면 모듈 컨트롤러가 SH1106이 아니다(SSD1306/SSD1315) — `cfg.colOffset = 0`.
 - **512x64 한 장 캔버스**(LovyanGFX 1bit 스프라이트 등): `display.pushCanvas((const uint8_t*)sprite.getBuffer(), reverseOrder)`.
   캔버스를 화면별로 전치(`ds::canvasToScreenPages`)해 U8g2 버퍼에 직접 쓰므로 소프트웨어 회전은 적용되지 않는다 —

@@ -1,7 +1,7 @@
 # 🛠 Hardware Specification: DeskStream V2 board
 
 DeskStream V2 보드의 하드웨어 구성과 핀 맵입니다. 새 프로젝트를 시작하거나 배선을 확인할 때 참조하세요.
-(출처: `Hangeul_Clock_bitbang_i2c/config.h`, `README.md` — 2026-11-15 V2 PCB 핀맵)
+(2026-11-15 V2 PCB 핀맵. 코드의 정의는 `libraries/DeskStreamV2Core/src/ds_board.h`)
 
 ## 1. 메인 컨트롤러 (Controller)
 | 항목 | 사양 | 비고 |

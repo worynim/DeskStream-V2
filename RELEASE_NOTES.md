@@ -1,5 +1,13 @@
 # DeskStream V2 Release Notes
 
+## [v0.3.0] - 2026-11-17
+### 🕐 Hangeul_Clock 이식
+- `Hangeul_Clock` v2.12.0: V1 v2.11.1을 DeskStreamV2Core로 이식. 코드 변경은 include와 주석, 테스트가 읽는 라이브러리 경로뿐이다.
+  설정(NVS `clock`)·폰트가 이어진다.
+- 호스트 테스트·웹 페이지 JS 검증 통과. 실기 확인 — 시간 표시·버튼·웹 설정 정상 (WiFi와 BitBang 전송을 함께 쓰는 첫 프로젝트).
+- `Hangeul_Clock_bitbang_i2c`(v1.1.2)를 저장소에서 삭제했다 — `Hangeul_Clock` v2.12.0이 대체한다. 함께 들어 있던 Multi_BitBang(GPLv3) 소스도 없어졌다.
+- `HARDWARE.md`: 출처 표기를 `ds_board.h`로 바꿨다.
+
 ## [v0.2.0] - 2026-11-17
 ### 🧩 Game_Of_Life · Universal_Timer 이식
 - `Game_Of_Life` v1.2.0: V1 v1.1.1을 DeskStreamV2Core로 이식. 난수 시드를 `analogRead(0)` → `esp_random()`으로 바꿨다(GPIO 0 = OLED SCL).

@@ -1,35 +1,24 @@
-# Hangeul_Clock_bitbang_i2c 테스트
+# Hangeul_Clock 테스트
 
 호스트(g++)에서 돌리는 네이티브 단위 테스트 모음. 펌웨어 업로드 없이 로직을 검증한다.
 
-> [v1.0.9] `test_i2c_retry_policy.cpp`는 **삭제**했다. 그 테스트가 검증하던 dirty 마스크
-> 장부(`preparePageUpdate`/`pageMarkResult`/`mergeDirtyRange`)가 캡처·재생 방식으로
-> 전송 계층을 바꾸면서 **전부 사라졌기** 때문이다. 검증 대상이 없는 테스트는 남기지 않는다.
+> TZ 검증·UTF-8 판정·NTP 재동기화 정책·BitBang 전송 테스트는 공통 라이브러리에 있다:
+> `bash libraries/DeskStreamV2Core/test/run_all.sh` (저장소 루트에서). 이 폴더에는 한글 시계 전용 테스트만 있다.
 
 ## 실행 방법
 
 ```bash
 cd test
-g++ -std=c++11 -I.. test_bitbang_core.cpp -o /tmp/test_bitbang_core && /tmp/test_bitbang_core
-g++ -std=c++11 -I.. test_frame_diff.cpp -o /tmp/test_frame_diff && /tmp/test_frame_diff
-g++ -std=c++11 -I.. test_tz_util.cpp ../tz_util.cpp -o /tmp/test_tz_util && /tmp/test_tz_util
-g++ -std=c++11 -I.. test_utf8_len.cpp -o /tmp/test_utf8_len && /tmp/test_utf8_len
 g++ -std=c++11 -I.. test_geometry.cpp ../renderer_geometry.cpp -o /tmp/test_geometry && /tmp/test_geometry
 g++ -std=c++11 -I.. test_layout.cpp ../renderer_layout.cpp -o /tmp/test_layout && /tmp/test_layout
-g++ -std=c++11 -I.. test_time_sync_policy.cpp -o /tmp/test_time_sync_policy && /tmp/test_time_sync_policy
 ```
 
 ## 파일 안내
 
 | 파일 | 내용 |
 |:--|:--|
-| `test_bitbang_core.cpp` | BitBang 인코딩 순수 로직. 비트 순서(MSB 먼저), ACK 극성(LOW가 ACK), 4버스 동시 전송의 열 구간 합집합. 인코더 출력을 **복조해 원바이트로 왕복**시키는 검증 포함 |
-| `test_frame_diff.cpp` | 셰도 버퍼 페이지 diff(`fdDiffPage`, 타일 워드 비교). 예전 바이트 루프를 옮긴 기준 구현과 구간·셰도를 무작위 20000회 대조 |
-| `test_tz_util.cpp` | POSIX TZ 문자열 화이트리스트 검증 단위 테스트 |
-| `test_utf8_len.cpp` | UTF-8 리딩 바이트 판정 회귀 테스트 (4바이트 문자 3바이트 오판정 버그) |
 | `test_geometry.cpp` | 글자 셀 기하 판별 회귀 테스트 (257~511바이트 파일의 초과 읽음 차단) |
 | `test_layout.cpp` | 글자 x 좌표 배치 회귀 테스트 (1자일 때 화면 밖으로 나가던 버그) + 날짜("...일") 우측 정렬 판정(`layoutIsDayText`) |
-| `test_time_sync_policy.cpp` | NTP 재동기화 시점 정책(주기 6h · 오래됨 12h · 미동기 30s 재시도 · WiFi 복구)과 1초 렌더 트리거(epoch 초 변화) 회귀 테스트. `millis()` 49.7일 랩 구간 포함. 원본 Hangeul_Clock v2.9.8에서 이식 |
 
 ## JS ↔ 펌웨어 배선 검증 (test/js/)
 
@@ -51,13 +40,7 @@ test/js/run_all.sh
 
 ## 대상 모듈
 
-호스트에서 빌드할 수 있는 모듈은 `tz_util`처럼 Arduino에 의존하지 않아야 한다.
-
-**이 조건을 만족시키는 분리 방식의 예**: 비트뱅 드라이버(`bitbang_i2c.cpp`)는
-`Arduino.h`·`soc/gpio_struct.h`에 의존해 테스트할 수 없지만, 그중 **판단 로직**
-(비트 순서 · ACK 극성 · 4버스 열 구간 합집합)만 `bitbang_i2c_core.h`로 떼어냈다.
-`test_bitbang_core.cpp`가 그 파일만 include 하므로 하드웨어 없이 검증된다.
-새 로직을 추가할 때도 "GPIO를 만지는 코드"와 "값을 계산하는 코드"를 이렇게 가른다.
+호스트에서 빌드할 수 있는 모듈은 `renderer_layout`처럼 Arduino에 의존하지 않아야 한다.
 
 눈 조립·분할 플랩의 픽셀 운동학은 `renderer.cpp` 안에 있어(아직 Arduino/U8g2 의존) 이 조건을
 만족하지 못하므로 단위 테스트 대상이 **아니다**. 펌웨어와 `web_pages.h`의 JS 미러에 같은 수식이

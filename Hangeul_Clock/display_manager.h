@@ -3,19 +3,16 @@
  * @file display_manager.h
  * @brief 고수준 디스플레이 및 UI 스테이지 관리 클래스 정의
  * @details 4개 OLED에 대한 통합 렌더링, 시계/IP/도움말 화면 전환 및 애니메이션 트리거 관리
- * @note [SYNC] ENG_Clock/display_manager.h — applyTimezone() 추가
  */
 #ifndef DISPLAY_MANAGER_H
 #define DISPLAY_MANAGER_H
 
 #include <U8g2lib.h>
 #include "config.h"
-#include "oled_panel.h"   // OLED_DRIVER 선택에 따라 OledPanel 타입이 정해진다
 #include <pgmspace.h>
 #include <vector>
 #include <map>
 #include <utility>
-#include "i2c_platform.h"
 #include "config_manager.h"
 #include "renderer.h"
 
@@ -45,25 +42,16 @@ struct AnimationState {
 class DisplayManager;
 extern DisplayManager display;
 
-// 외부 인터페이스 함수 포인터 선언 (i2c_platform.h로 이관됨)
+// 앱 전역 서비스 (Hangeul_Clock.ino에서 정의)
+extern ds::Logger logger;
+extern ds::TimeSync timeSync;
 
 class DisplayManager {
 public:
-    /**
-     * @note [BB v1.0.1] 컨트롤러는 `config.h`의 `OLED_DRIVER`로 고른다.
-     *       1.3" 128×64 I2C 모듈은 **겉모습과 주소(0x3C)가 같고 컨트롤러만 다르다**
-     *       (SH1106 / SSD1315 / SSD1306). I2C에 읽기 경로가 없어 소프트웨어로는
-     *       구별할 수 없으므로, 진단 스윕(`BB_DIAG_MODE 1`)으로 눈으로 고른 뒤
-     *       `OLED_DRIVER`를 바꾼다.
-     * @note SH1106은 132열 RAM이라 열 오프셋(+2)이 필요하다 — `OLED_COL_OFFSET`.
-     *       초기화는 U8g2가 처리하고, **프레임 전송의 열 보정은 우리가** 해야 한다
-     *       (프레임 구간의 열 보정은 U8g2가 하고, 전송 구간 정렬만 i2c_platform이 한다).
-     * @note 핀 번호는 U8X8_PIN_NONE(255) — 실제 전송은 i2c_platform.cpp의
-     *       byte_cb(u8x8_byte_bb_N)가 4버스 동시 BitBang으로 처리한다.
-     */
-    OledPanel u8g2_1, u8g2_2, u8g2_3, u8g2_4;
-    U8G2* screens[NUM_SCREENS];
-    alignas(4) uint8_t u8g2_buffers[NUM_SCREENS][SCREEN_WIDTH * PAGES_PER_SCREEN];   // 4바이트 정렬 — frame_diff.h 워드 비교
+    /** 4-OLED 화면 엔진 (U8G2 4개·셰도 diff·4버스 동시 BitBang 전송) — DeskStreamV2Core */
+    ds::DisplayCore core;
+    /** core.screens() — 렌더러·그리기 코드가 인덱스로 접근한다 */
+    U8G2** screens;
     String lastTexts[4];
 
     DisplayManager();
@@ -91,7 +79,7 @@ public:
      *          POSIX TZ로 강제 변환해 설정값을 덮어써서 항상 UTC가 된다.
      *
      * @note 입력 검증은 config_manager(로드)와 web_manager(입력)가 이미 수행한다
-     *       (둘 다 tz_util::isValidTimezone). 여기서는 검증된 값만 사용한다.
+     *       (둘 다 ds::isValidTimezone). 여기서는 검증된 값만 사용한다.
      */
     void applyTimezone();
 
@@ -120,24 +108,19 @@ public:
     bool isAnimating() const { return _animState.active; }
 
     // 헬퍼 및 유틸리티
-    void pushParallel();
+    void pushParallel() { core.push(); }
     void showLargeIP(IPAddress ip);
     void showButtonHelp();
     void showStatus(const String& msg);
 
-    /**
-     * @brief 풀 프레임 전송 FPS를 측정해 시리얼과 화면에 보고한다
-     * @details config.h의 FPS_BENCH_ON_BOOT 참조. 화면 내용을 덮어쓰므로 부팅 중에만 부른다.
-     */
-    void runFpsBenchmark();
-    void playStartupMelody(); // 시작 멜로디 재생
-    void playChimeMelody(); // 시보 멜로디 재생
+    void playStartupMelody(); // 시작 멜로디 재생 (비차단)
+    void playChimeMelody(); // 시보 멜로디 재생 (비차단)
 
 private:
     bool _needsForceUpdate = false;
     String _slotNames[5];
     void (*on_yield_callback)() = nullptr;
-    TimerHandle_t buzzerTimer = NULL;
+    ds::Buzzer _buzzer;
     AnimationState _animState;
     
     void drawCenterText(int idx, const String& text);
