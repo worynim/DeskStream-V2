@@ -1,0 +1,53 @@
+# Release Notes - OLED Wide Test
+
+## [v1.4.0] - 2026-11-17
+### 🖥️ DeskStream V2 보드로 이식 (SH1106 128x64 × 4)
+- DeskStream(V1) 저장소의 v1.3.1을 가져왔다. 화면이 V1과 같은 512x64라 데모 코드는 그대로다.
+- **전송**: `<DeskStreamCore.h>` → `<DeskStreamV2Core.h>` (v0.7.0) — 4버스 동시 BitBang(SCL GPIO 0 공유, SDA 2/1/10/7). 스케치 코드는 `pushCanvas()` 그대로다.
+- **버튼·부저**: BTN1 = GPIO 3, 부저 = GPIO 6 (V2 핀맵, DeskStreamV2Core가 정의).
+- 텍스트 데모의 안내 문구를 V2(SH1106 x 4, DeskStreamV2Core)로 바꿨다.
+- 크기: 468,974 B (`nologo_esp32c3_super_mini`).
+- 실기 확인(2026-11-17): 부팅 스캔 4버스 0x3C OK, 4화면이 정방향으로 1-2-3-4 순서로 이어져 표시, 30fps, 동시 재생 실패 로그 없음.
+  처음엔 화면 순서가 4-3-2-1로 나왔고, DeskStreamV2Core의 화면↔버스 배정을 `{0,1,2,3}`으로 고쳐 해결했다.
+- 정방향은 플립 OFF(`is_flipped = false`)다. NVS에 저장값이 없는 보드는 V1과 같이 기본값(`true`)으로 시작해 뒤집혀 보이므로 BTN 1을 한 번 누른다.
+
+## [v1.3.1] - 2026-11-10
+### 🔧 DeskStreamCore v0.6.0으로 재빌드
+- 공통 라이브러리 갱신(WiFiManager 의존 제거)에 맞춰 다시 빌드했다. 이 프로젝트는 WiFi 설정 포털을 쓰지 않으므로 **동작 변경은 없다**.
+- 크기: 466,420 → 465,034 B.
+
+## [v1.3.0] - 2026-11-09
+### 🧩 공통 라이브러리 DeskStreamCore로 전환
+- **DeskStreamCore 전환**: Wire 800kHz U8g2 전송·자체 SW I2C 콜백·셰도 버퍼·페이지 단위 전송을 지우고 `ds::DisplayCore::pushCanvas()`를 쓴다.
+- **화면 전송**: 512x64 LovyanGFX 캔버스 → 화면별 전치·바뀐 타일만 HW·SW 병렬 전송을 `ds::DisplayCore::pushCanvas()`가 한다 (HW 1.1MHz + 페이지 병합, 고속 SW I2C 약 1.15MHz). 전송 실패 페이지 재시도·버스 자가 복구가 생겼다. 예전엔 바뀐 페이지를 통째로(128px) 동기 전송했다.
+- **버튼·부저**: BTN1 짧게 플립(`ds::Buttons`), 비프는 비차단(`ds::Buzzer`). 30fps 상한·테스트 장면·NVS("wide_set")는 그대로.
+
+## [v1.2.1] - 2026-10-21
+### 🛠️ Fixed
+- **USB CDC 로그 블로킹 방지 (ESP32-C3)**: `Serial.begin()` 직후 `Serial.setTxTimeoutMs(0)`을 적용했습니다. USB CDC(HWCDC) TX 링버퍼(256B)가 가득 찬 상태에서 로그를 출력하면 `HWCDC::write()`가 호출당 최대 2초(`tx_timeout_ms` 100 ms × `max_consec_timeouts` 20회)를 블로킹해 메인 루프(렌더링·버튼)가 멈추는 잠재 위험을 제거했습니다. `ARDUINO_USB_CDC_ON_BOOT` 가드로 CDC 부팅 보드에서만 적용됩니다.
+
+## [v1.2.0] - 2026-04-13
+### Changed
+- **소스 코드 문서화 표준화**: 모든 .ino 파일 상단에 작성자 이메일(@worynim@gmail.com) 및 Doxygen 스타일 헤더 주석을 추가했습니다.
+
+## [v1.1.1] - Button Responsiveness Patch (2026-04-01)
+### 🛠️ 성능 최적화
+- **실시간 버튼 스캔 강화**: 렌더링 엔진(`pushSmartWideCanvas`) 및 프레임 대기 루프 내부에 버튼 핸들러를 통합하여, 화면 전송 중에도 즉각적인 플립 반응성을 확보했습니다.
+
+## [v1.1.0] - Screen Flip & Audio Feedback (2026-04-01)
+### 🚀 주요 추가 기능
+- **180도 화면 회전 (Screen Flip) 기능**: 1번 버튼(GPIO 1)을 통해 화면 방향을 180도 토글할 수 있습니다.
+- **다이나믹 디스플레이 스왑 (Order Swap)**: 화면이 뒤집힐 때 512x64 캔버스의 구역 매핑을 `1-2-3-4`에서 `4-3-2-1` 슬롯으로 자동 교체하여 가로 방향 애니메이션의 흐름을 보존합니다.
+- **오디오 피드백 통합**: 버튼 조작 시 3000Hz 주파수의 비프음을 출력하는 부저 피드백 로직을 탑재했습니다.
+- **비휘발성 설정 보존 (NVS)**: 화면 회전 상태를 내부 플래시 메모리에 저장하여 전원 재부팅 후에도 마지막 설정을 자동으로 복구합니다.
+
+### 🛠️ 하드웨어 최적화
+- **I2C 클럭 동기화**: 모든 I2C 채널(HW/SW)의 버스 클럭을 800kHz로 상향 조정하여 전송 안정성과 속도 균형을 맞췄습니다.
+- **스마트 딜레이 로직 보강**: 연산 지연 중에도 버튼 입력을 지속적으로 스캔하도록 구조를 개선했습니다.
+
+---
+
+## [v1.0.0] - Initial Matrix Test (2026-03-20)
+- 4개 OLED 통합 제어 엔진 초기 버전
+- Shadow Buffering 기반의 더티 페이지 체크 전송 구현
+- ESP32-C3 전용 레지스터 직접 제어 방식의 고속 SW I2C 탑재
