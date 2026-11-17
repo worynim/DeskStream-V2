@@ -76,7 +76,7 @@ void loop() {
 | `src/util/ds_logger.*` | 부팅 로그 (시리얼 + OLED 한 화면 4줄) | Hangeul_Clock v2.10.0 |
 | `src/util/ds_utf8.h` | UTF-8 리딩 바이트 길이 판정 (순수) | Hangeul_Clock v2.10.0 |
 
-사용 중인 스케치: OLED_Wide_test (v1.4.0~), Game_Of_Life (v1.2.0~), Universal_Timer (v1.3.0~), Hangeul_Clock (v2.12.0~), ENG_Clock (v1.2.0~), Chinese_Clock (v1.2.0~), World_Clock (v0.2.0~), Smart_Info_Station (v2.11.0~), Stats_Monitor (v1.7.0~), Screen_To_OLEDs (펌웨어 v2.4.0~), Agent_Monitor (펌웨어 v0.8.0~).
+사용 중인 스케치: OLED_Wide_test (v1.4.0~), Game_Of_Life (v1.2.0~), Universal_Timer (v1.3.0~), Hangeul_Clock (v2.12.0~), ENG_Clock (v1.2.0~), Chinese_Clock (v1.2.0~), World_Clock (v0.2.0~), Smart_Info_Station (v2.11.0~), Stats_Monitor (v1.7.0~), Screen_To_OLEDs (펌웨어 v2.4.0~), Agent_Monitor (펌웨어 v0.8.0~), DS_DECK (v1.7.0~).
 
 ## 테스트
 

@@ -1,5 +1,10 @@
 # DeskStream V2 Release Notes
 
+## [v0.11.0] - 2026-11-17
+### ⌨️ DS_DECK 이식
+- `DS_DECK` v1.7.0: V1 v1.6.1을 DeskStreamV2Core로 이식. 코드 변경은 include와 주석뿐이다.
+- 실기 확인 — BLE 키보드 페어링·매크로·아이콘·웹 설정 정상.
+
 ## [v0.10.0] - 2026-11-17
 ### 🤖 Agent_Monitor 이식
 - `Agent_Monitor` 펌웨어 v0.8.0: V1 펌웨어 0.7.1을 DeskStreamV2Core로 이식. 코드 변경은 include·주석·버전 문자열뿐이다.

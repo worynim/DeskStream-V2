@@ -27,9 +27,10 @@ DeskStream(V1) 저장소의 구조(공통 라이브러리 + 프로젝트별 스�
 | [Stats_Monitor](./Stats_Monitor/) — PC 시스템 상태 모니터 (BLE) | v1.7.0 | DeskStreamV2Core 사용 · 실기 확인 (2026-11-17) |
 | [Screen_To_OLEDs](./Screen_To_OLEDs/) — 실시간 화면 스트리머 (WiFi UDP) | 펌웨어 v2.4.0 | DeskStreamV2Core 사용 · 실기 확인 (2026-11-17) |
 | [Agent_Monitor](./Agent_Monitor/) — AI 개발 에이전트 모니터 (USB·BLE) | 펌웨어 v0.8.0 | DeskStreamV2Core 사용 · 실기 확인 (2026-11-17) |
+| [DS_DECK](./DS_DECK/) — 프로그래머블 매크로 패드 (BLE HID) | v1.7.0 | DeskStreamV2Core 사용 · 실기 확인 (2026-11-17) |
 
 V1에서 옮겨 올 프로젝트:
-DS_DECK, Sound_Visualizer_4_OLEDs, GPS_DASH, Wireless_Analyzer.
+Sound_Visualizer_4_OLEDs, GPS_DASH, Wireless_Analyzer.
 
 ## 📚 공통 라이브러리
 - [libraries/DeskStreamV2Core](./libraries/DeskStreamV2Core/) (v0.7.0) — 화면 엔진(4버스 동시 BitBang)·버튼·부저·WiFi·NTP·설정 저장.
