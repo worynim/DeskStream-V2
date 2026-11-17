@@ -1,5 +1,11 @@
 # DeskStream V2 Release Notes
 
+## [v0.10.0] - 2026-11-17
+### 🤖 Agent_Monitor 이식
+- `Agent_Monitor` 펌웨어 v0.8.0: V1 펌웨어 0.7.1을 DeskStreamV2Core로 이식. 코드 변경은 include·주석·버전 문자열뿐이다.
+  PC 데몬(0.7.0)·`p0_spike/`는 그대로 복사했다.
+- 호스트 테스트·파이썬 테스트 통과. 실기 확인 — PC 데몬 연결·키 등록·세션 표시·승인·버튼 정상.
+
 ## [v0.9.0] - 2026-11-17
 ### 🎬 Screen_To_OLEDs 이식
 - `Screen_To_OLEDs` 펌웨어 v2.4.0: V1 펌웨어 v2.3.1을 DeskStreamV2Core로 이식. 코드 변경은 include와 주석뿐이다. PC 스트리머(2.3.4)는 그대로 복사했다.
