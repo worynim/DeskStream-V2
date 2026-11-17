@@ -29,9 +29,9 @@ DeskStream(V1) 저장소의 구조(공통 라이브러리 + 프로젝트별 스�
 | [Agent_Monitor](./Agent_Monitor/) — AI 개발 에이전트 모니터 (USB·BLE) | 펌웨어 v0.8.0 | DeskStreamV2Core 사용 · 실기 확인 (2026-11-17) |
 | [DS_DECK](./DS_DECK/) — 프로그래머블 매크로 패드 (BLE HID) | v1.7.0 | DeskStreamV2Core 사용 · 실기 확인 (2026-11-17) |
 | [Sound_Visualizer_4_OLEDs](./Sound_Visualizer_4_OLEDs/) — 오디오 스펙트럼 비주얼라이저 (MIC) | v3.7.0 | DeskStreamV2Core 사용 · 실기 확인 (2026-11-17) |
+| [Wireless_Analyzer](./Wireless_Analyzer/) — 2.4GHz 무선 환경 분석기 | v0.6.0 | DeskStreamV2Core 사용 · 실기 확인 (2026-11-17) |
 
-V1에서 옮겨 올 프로젝트:
-GPS_DASH, Wireless_Analyzer.
+V1에서 옮겨 올 프로젝트: GPS_DASH (GPS TX와 BTN3 공유 처리 설계 필요 — 하드웨어 준비 후 진행).
 
 ## 📚 공통 라이브러리
 - [libraries/DeskStreamV2Core](./libraries/DeskStreamV2Core/) (v0.8.0) — 화면 엔진(4버스 동시 BitBang)·버튼·부저·WiFi·NTP·설정 저장.

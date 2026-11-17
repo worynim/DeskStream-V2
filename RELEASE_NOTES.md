@@ -1,5 +1,10 @@
 # DeskStream V2 Release Notes
 
+## [v0.13.0] - 2026-11-17
+### 📡 Wireless_Analyzer 이식
+- `Wireless_Analyzer` v0.6.0: V1 0.5.1을 DeskStreamV2Core로 이식. 코드 변경은 include·주석·버전 문자열뿐이다.
+- 호스트 테스트 통과. 실기 확인 — WiFi 스캔·채널 활동량·BLE 스캔과 화면 전송이 함께 정상, 6개 화면·버튼 정상.
+
 ## [v0.12.0] - 2026-11-17
 ### 🎤 Sound_Visualizer_4_OLEDs 이식
 - `Sound_Visualizer_4_OLEDs` v3.7.0: V1 v3.6.0을 DeskStreamV2Core로 이식. 마이크 입력을 GPIO 0(ADC1_CH0) → GPIO 4(ADC1_CH4)로 바꿨다.
