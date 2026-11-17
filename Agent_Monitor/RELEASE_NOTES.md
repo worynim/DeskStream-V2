@@ -1,5 +1,15 @@
 # Release Notes - Agent_Monitor
 
+## [v0.8.0] - 2026-11-18
+### 📊 V1 PC 데몬 0.7.1 · 0.8.0 반영 — 닫은 세션 재등장 수정 · Claude 사용량 직접 조회 (펌웨어는 0.8.0 그대로)
+- DeskStream(V1) 저장소 `c58516b`(v4.41.0)의 `bridge_py/`를 그대로 가져왔다. 펌웨어는 주석 한 줄만 바뀌어 다시 올릴 필요가 없다.
+- **0.7.1 — 버그 수정**: 상세 화면 BTN2(CLOSE)로 닫은 세션이 그 세션의 다음 훅 이벤트에 같은 슬롯으로 돌아와 BACK 처럼 보였다.
+  이제 **새 질문(UserPromptSubmit) · 승인 요청(PermissionRequest · permission_prompt 알림) · SessionStart** 가 올 때만 다시 보이고, SessionEnd 가 오면 기억을 지운다 (`SessionTable.close`).
+- **0.8.0 — 사용량 직접 조회**: 설정 `[usage] poll = true` (기본 꺼짐, macOS 만)면 데몬이 5분마다 `GET api.anthropic.com/api/oauth/usage` 를 Claude Code 의 키체인 로그인 토큰(`Claude Code-credentials`)으로 조회한다 (`usage_poll.py`). Claude 데스크톱 앱(Code 탭)만 써서 상태줄로 값이 들어오지 않을 때를 위한 기능이다.
+  - 토큰은 읽기만 한다 — 갱신·저장·로그 출력하지 않고, 만료됐으면 조회하지 않는다. 비공개 주소라 Claude Code 업데이트로 바뀔 수 있어 기본은 꺼 둔다.
+  - `certifi` 를 requirements 에 추가했다 (python.org 판 Python 의 인증서 문제).
+- 파이썬 테스트 65개 통과. 실기 확인은 아직.
+
 ## [펌웨어 0.8.0] - 2026-11-17
 ### 🖥️ DeskStream V2 보드로 이식 (SH1106 128x64 × 4) — PC 데몬 변경 없음 (0.7.0)
 - DeskStream(V1) 저장소의 펌웨어 0.7.1을 가져왔다. 화면이 V1과 같은 128x64 × 4라 화면·상태·BLE·서명 코드는 그대로다.

@@ -1,5 +1,10 @@
 # DeskStream V2 Release Notes
 
+## [v0.14.0] - 2026-11-18
+### 📊 Agent_Monitor PC 데몬 0.8.0 — V1 변경 반영
+- `Agent_Monitor` PC 데몬 v0.8.0: V1 v4.40.2 · v4.41.0(`c58516b`)의 PC 데몬 0.7.1 · 0.8.0을 그대로 가져왔다 — 상세 화면에서 닫은 세션이 다시 나타나던 문제 수정, `[usage] poll` 로 Claude 사용량 직접 조회(macOS, 기본 꺼짐). 펌웨어는 0.8.0 그대로(주석만 변경). 이력은 `Agent_Monitor/RELEASE_NOTES.md`.
+- 파이썬 테스트 65개 통과. 실기 확인은 아직.
+
 ## [v0.13.0] - 2026-11-17
 ### 📡 Wireless_Analyzer 이식
 - `Wireless_Analyzer` v0.6.0: V1 0.5.1을 DeskStreamV2Core로 이식. 코드 변경은 include·주석·버전 문자열뿐이다.
