@@ -10,7 +10,7 @@
 #ifndef DESKSTREAM_V2_CORE_H
 #define DESKSTREAM_V2_CORE_H
 
-#define DS_CORE_VERSION "0.7.0"   // library.properties 의 version 과 일치해야 한다
+#define DS_CORE_VERSION "0.8.0"   // library.properties 의 version 과 일치해야 한다
 
 #include "ds_board.h"
 

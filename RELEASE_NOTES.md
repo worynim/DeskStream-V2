@@ -1,5 +1,11 @@
 # DeskStream V2 Release Notes
 
+## [v0.12.0] - 2026-11-17
+### 🎤 Sound_Visualizer_4_OLEDs 이식
+- `Sound_Visualizer_4_OLEDs` v3.7.0: V1 v3.6.0을 DeskStreamV2Core로 이식. 마이크 입력을 GPIO 0(ADC1_CH0) → GPIO 4(ADC1_CH4)로 바꿨다.
+- `DeskStreamV2Core` v0.8.0: 마이크 핀 상수 `ds::kMicPin`·`ds::kMicAdcChannel` 추가 (기존 API 변경 없음).
+- 라이브러리 호스트 테스트 통과. 실기 확인 — GPIO 4 마이크 입력에 스펙트럼 반응, 화면·버튼 정상.
+
 ## [v0.11.0] - 2026-11-17
 ### ⌨️ DS_DECK 이식
 - `DS_DECK` v1.7.0: V1 v1.6.1을 DeskStreamV2Core로 이식. 코드 변경은 include와 주석뿐이다.

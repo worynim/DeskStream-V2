@@ -22,6 +22,11 @@ constexpr uint8_t kButtonPins[kNumButtons] = {3, 5, 21, 9};   // BTN1~BTN4
 // === 부저 ===
 constexpr uint8_t kBuzzerPin = 6;
 
+// === 마이크 (아날로그) ===
+//   C3의 ADC2(GPIO 5)는 continuous(DMA) 모드를 지원하지 않아 ADC1 핀에 둔다.
+constexpr uint8_t kMicPin = 4;
+constexpr uint8_t kMicAdcChannel = 4;   // ADC1_CH4 (= ADC_CHANNEL_4, ADC_UNIT_1)
+
 // === I2C 버스 (4버스 BitBang — SCL 1개 공유, SDA는 화면별) ===
 //   1.3" 모듈은 주소를 바꿀 수 없어(전부 0x3C) 버스를 4개 만든다.
 constexpr uint8_t kNumBuses = 4;

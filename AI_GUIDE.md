@@ -26,7 +26,7 @@
 7. 웹 페이지나 설정 키를 바꾸면 기존 기기의 **NVS 키·타입을 그대로** 유지한다 (바꾸면 저장값이 사라진다).
 8. 요청 범위 밖 코드는 고치지 않고, 커밋·푸시는 사용자가 지시할 때만 한다 (사용자 전역 규칙).
 9. **GPIO 0~10, 20, 21을 전부 쓴다 — 빈 핀이 없다.** V1 코드를 옮길 때 핀을 직접 쓰는 곳을 반드시 확인한다
-   (예: V1의 `analogRead(0)`·`ADC_CHANNEL_0` — V2에서 GPIO 0은 OLED 공유 SCL이다. MIC는 GPIO 4 = `ADC_UNIT_1`/`ADC_CHANNEL_4`).
+   (예: V1의 `analogRead(0)`·`ADC_CHANNEL_0` — V2에서 GPIO 0은 OLED 공유 SCL이다. MIC는 `ds::kMicPin`(GPIO 4) = `ADC_UNIT_1`/`ds::kMicAdcChannel`(4)).
 10. **BTN3(GPIO 21)은 GPS RX(ESP TX)와 선을 공유한다.** GPS에 설정을 보낼 때만 잠시 UART TX로 쓰고 다시 `INPUT_PULLUP`으로
     되돌리며, 그동안 버튼 처리를 멈춘다. 빌드 옵션 **USB CDC On Boot = Enabled**를 유지한다 — 꺼지면 `Serial`이
     UART0(20/21)로 나가 BTN3·GPS 선과 충돌한다.
@@ -62,13 +62,14 @@ arduino-cli compile --fqbn "esp32:esp32:nologo_esp32c3_super_mini" --build-path 
 |:--|:--|:--|
 | `ds::kButtonPins[4]` | `{3, 5, 21, 9}` | BTN1~BTN4, INPUT_PULLUP (LOW = 눌림). BTN3 = GPS 공유, BTN4 = BOOT 스트래핑 |
 | `ds::kBuzzerPin` | `6` | 패시브 부저 |
+| `ds::kMicPin`, `ds::kMicAdcChannel` | `4`, `4` | 아날로그 마이크 — ADC1_CH4 (`ADC_UNIT_1`). ADC2는 continuous 모드 미지원 |
 | `ds::kSclPin` | `0` | 4버스 공유 클럭 |
 | `ds::kBusSdaPins[4]` | `{2, 1, 10, 7}` | 버스 번호 → SDA 핀 (물리 OLED1~4) |
 | `ds::kBusOfScreen[4]` | `{0, 1, 2, 3}` | 화면 번호 → 버스 번호 (화면 0~3 = 왼쪽부터 OLED1~4). 화면 순서는 핀 배열이 아니라 이 표로 바꾼다 |
 | `ds::kOledAddr` | `0x3C` | 4화면 공통 (V1은 배열 — V2는 값 하나) |
 | `ds::kNumScreens`, `kScreenWidth`, `kScreenHeight` | `4`, `128`, `64` | `kScreenBufBytes` = 1024 |
 
-V1에 있던 `kHwSdaPin`·`kHwSclPin`·`kSwSdaPin`·`kSwSclPin`은 없다. MIC(4)·NeoPixel(8)·GPS(20/21) 핀은 아직 상수로 두지 않았다 —
+V1에 있던 `kHwSdaPin`·`kHwSclPin`·`kSwSdaPin`·`kSwSclPin`은 없다. NeoPixel(8)·GPS(20/21) 핀은 아직 상수로 두지 않았다 —
 그 장치를 쓰는 프로젝트를 옮길 때 `ds_board.h`에 추가한다.
 
 ---

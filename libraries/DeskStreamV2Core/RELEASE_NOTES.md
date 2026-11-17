@@ -2,6 +2,11 @@
 
 > v0.6.1 이하는 DeskStream(V1) 저장소 `DeskStreamCore`의 이력이다.
 
+## [v0.8.0] - 2026-11-17
+### 🎤 마이크 핀 상수 추가
+- `ds_board.h`: `ds::kMicPin = 4`, `ds::kMicAdcChannel = 4`(ADC1_CH4). C3의 ADC2는 continuous(DMA) 모드를 지원하지 않아 마이크를 ADC1 핀에 둔다.
+- 기존 API 변경 없음 — 상수만 추가했다. 사용처: Sound_Visualizer_4_OLEDs v3.7.0 (실기 확인 — 마이크 입력 정상).
+
 ## [v0.7.0] - 2026-11-17
 ### 🖥️ DeskStream V2 보드로 이식 (SH1106 128x64 × 4, 4버스 동시 BitBang)
 - 라이브러리 이름은 `DeskStreamV2Core`(묶음 헤더 `DeskStreamV2Core.h`) — V1 `DeskStreamCore`·V3 `DeskStreamV3Core`와 스케치북에 함께 둘 수 있다.
