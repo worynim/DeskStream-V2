@@ -14,7 +14,7 @@ Preferences prefs;
 
 // --- [1] 하드웨어 설정 ---
 // 핀·I2C(4버스 동시 BitBang)는 DeskStreamV2Core. BTN1(GPIO 3) = 화면 플립.
-bool is_flipped = true;   // true = 패널 기본 방향(0xA1/0xC8) + 화면 순서 4→1
+bool is_flipped = false;  // false = 정방향. true = 180° 뒤집기(0xA1/0xC8 + 화면 순서 4→1)
 
 static ds::DisplayCore display;   // 4화면 전송 엔진 — 캔버스 전치·바뀐 타일만 병렬 전송
 static ds::Buttons buttons;
@@ -219,7 +219,7 @@ void setup() {
 
   // 저장된 설정 로드
   prefs.begin("wide_set", true);
-  is_flipped = prefs.getBool("flip", true);
+  is_flipped = prefs.getBool("flip", false);
   prefs.end();
   applyFlipState(is_flipped);
 

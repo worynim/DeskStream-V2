@@ -1,5 +1,11 @@
 # DeskStream V2 Release Notes
 
+## [v0.9.0] - 2026-11-17
+### 🎬 Screen_To_OLEDs 이식
+- `Screen_To_OLEDs` 펌웨어 v2.4.0: V1 펌웨어 v2.3.1을 DeskStreamV2Core로 이식. 코드 변경은 include와 주석뿐이다. PC 스트리머(2.3.4)는 그대로 복사했다.
+- `Screen_To_OLEDs`·`OLED_Wide_test`(v1.4.1): 플립 기본값을 OFF(정방향)로 바꿨다 — 저장값이 없는 보드가 뒤집혀 시작하지 않는다.
+- 실기 확인 — 스트리밍(약 17~30fps)·방향·화면 순서·버튼 정상.
+
 ## [v0.8.0] - 2026-11-17
 ### 📊 Stats_Monitor 이식
 - `Stats_Monitor` v1.7.0: V1 펌웨어 v1.6.1을 DeskStreamV2Core로 이식. 코드 변경은 include와 주석뿐이다. PC 클라이언트(2.4.2)는 그대로 복사했다.
