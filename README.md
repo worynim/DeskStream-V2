@@ -18,7 +18,7 @@ DeskStream(V1) 저장소의 구조(공통 라이브러리 + 프로젝트별 스�
 |:--|:--|:--|
 | [OLED_Wide_test](./OLED_Wide_test/) — 512x64 초광폭 디스플레이 테스트 | v1.4.1 | DeskStreamV2Core 사용 · 실기 확인 (2026-11-17) |
 | [Game_Of_Life](./Game_Of_Life/) — 512x64 생명 게임 | v1.2.0 | DeskStreamV2Core 사용 · 실기 확인 (2026-11-17) |
-| [Universal_Timer](./Universal_Timer/) — 4-OLED 범용 타이머 | v1.3.0 | DeskStreamV2Core 사용 · 실기 확인 (2026-11-17) |
+| [Universal_Timer](./Universal_Timer/) — 4-OLED 범용 타이머 | v1.4.0 | DeskStreamV2Core 사용 · 실기 확인 (2026-11-19) |
 | [Hangeul_Clock](./Hangeul_Clock/) — 고화질 폰트 한글 시계 | v2.12.0 | DeskStreamV2Core 사용 · 실기 확인 (2026-11-17) |
 | [ENG_Clock](./ENG_Clock/) — 고화질 폰트 영어 시계 | v1.2.0 | DeskStreamV2Core 사용 · 실기 확인 (2026-11-17) |
 | [Chinese_Clock](./Chinese_Clock/) — 고화질 폰트 중국어 시계 | v1.2.0 | DeskStreamV2Core 사용 · 실기 확인 (2026-11-17) |

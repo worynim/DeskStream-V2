@@ -1,5 +1,10 @@
 # DeskStream V2 Release Notes
 
+## [v0.15.0] - 2026-11-19
+### 💾 Universal_Timer 1.4.0 — V1 1.3.0 반영
+- `Universal_Timer` v1.4.0: V1 v1.3.0(V1 v4.42.0)의 변경을 가져왔다 — 버튼으로 바꾼 시간을 START 시 NVS에 저장해 다시 켜도 유지, 일시정지 후 재개해도 TIME OVER 해제 시 처음 START한 시간으로 복원. 이력은 `Universal_Timer/RELEASE_NOTES.md`.
+- 컴파일 확인(442,582 B). 실기 확인 — 재부팅 후 설정 시간 유지, 일시정지 후 알람 복원 정상.
+
 ## [v0.14.0] - 2026-11-18
 ### 📊 Agent_Monitor PC 데몬 0.8.0 — V1 변경 반영
 - `Agent_Monitor` PC 데몬 v0.8.0: V1 v4.40.2 · v4.41.0(`c58516b`)의 PC 데몬 0.7.1 · 0.8.0을 그대로 가져왔다 — 상세 화면에서 닫은 세션이 다시 나타나던 문제 수정, `[usage] poll` 로 Claude 사용량 직접 조회(macOS, 기본 꺼짐). 펌웨어는 0.8.0 그대로(주석만 변경). 이력은 `Agent_Monitor/RELEASE_NOTES.md`.
