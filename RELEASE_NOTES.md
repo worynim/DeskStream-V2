@@ -1,5 +1,13 @@
 # DeskStream V2 Release Notes
 
+## [v0.16.0] - 2026-11-20
+### 📖 Page_Turner 이식 · V1 동기화 도구
+- `Page_Turner` v1.2.0: V1 v1.1.0(V1 v4.44.0, `9c96d88`)을 DeskStreamV2Core로 이식. 코드 변경은 include·주석·버전 문자열과
+  화면 끄기 전 `waitIdle()` 제거(V2 `push()`는 동기)뿐이다. 딥슬립 깨우기 버튼 BTN1·BTN2는 V2에서 GPIO 3·5로 0~5 범위 안이다.
+- 호스트 테스트 통과, 컴파일 745,379 B(공통 `partitions.csv`). 실기 확인 — 세로 화면·BLE 페어링·넘기기·설정 저장·화면 끄기·딥슬립과 깨우기 정상.
+- V1 동기화: `V1_SYNC.md`(기준 커밋·앱별 버전 대응표·반영 이력), `scripts/v1-sync.sh`(새 V1 커밋을 폴더별로 분류, 앱 단위 3-way 적용),
+  Claude Code `/sync-v1` 스킬(`.claude/skills/sync-v1/`). 지난 동기화(v0.14.0·v0.15.0)를 다시 적용해 코드 결과가 같음을 확인했다.
+
 ## [v0.15.0] - 2026-11-19
 ### 💾 Universal_Timer 1.4.0 — V1 1.3.0 반영
 - `Universal_Timer` v1.4.0: V1 v1.3.0(V1 v4.42.0)의 변경을 가져왔다 — 버튼으로 바꾼 시간을 START 시 NVS에 저장해 다시 켜도 유지, 일시정지 후 재개해도 TIME OVER 해제 시 처음 START한 시간으로 복원. 이력은 `Universal_Timer/RELEASE_NOTES.md`.

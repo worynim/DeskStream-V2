@@ -291,6 +291,10 @@ server.begin();
 2. `#include <DeskStreamCore.h>` → `<DeskStreamV2Core.h>`. 주석의 핀 번호·전송 방식 설명을 V2에 맞춘다.
 3. 핀·ADC·UART를 직접 쓰는 곳, `sendF()`로 패널 명령을 보내는 곳을 찾아 §1의 9·10번 규칙에 맞게 고친다.
 4. 임시 폴더로 컴파일 → 실기 확인 → 프로젝트 README·RELEASE_NOTES, 루트 README·RELEASE_NOTES 갱신.
+5. [`V1_SYNC.md`](./V1_SYNC.md) 대응표에 V1 기준·V2 버전을 추가한다.
+
+이미 옮긴 프로젝트에 V1의 새 변경을 반영할 때는 `scripts/v1-sync.sh`와 `/sync-v1` 스킬
+(`.claude/skills/sync-v1/SKILL.md`)을 쓴다.
 
 ---
 

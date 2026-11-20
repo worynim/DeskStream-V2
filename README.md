@@ -30,8 +30,20 @@ DeskStream(V1) 저장소의 구조(공통 라이브러리 + 프로젝트별 스�
 | [DS_DECK](./DS_DECK/) — 프로그래머블 매크로 패드 (BLE HID) | v1.7.0 | DeskStreamV2Core 사용 · 실기 확인 (2026-11-17) |
 | [Sound_Visualizer_4_OLEDs](./Sound_Visualizer_4_OLEDs/) — 오디오 스펙트럼 비주얼라이저 (MIC) | v3.7.0 | DeskStreamV2Core 사용 · 실기 확인 (2026-11-17) |
 | [Wireless_Analyzer](./Wireless_Analyzer/) — 2.4GHz 무선 환경 분석기 | v0.6.0 | DeskStreamV2Core 사용 · 실기 확인 (2026-11-17) |
+| [Page_Turner](./Page_Turner/) — BLE 페이지 터너 (웹소설·웹툰·쇼츠 넘기기) | v1.2.0 | DeskStreamV2Core 사용 · 실기 확인 (2026-11-20) |
 
 V1에서 옮겨 올 프로젝트: GPS_DASH (GPS TX와 BTN3 공유 처리 설계 필요 — 하드웨어 준비 후 진행).
+
+### V1 변경 동기화
+V1이 바뀌면 [V1_SYNC.md](./V1_SYNC.md)의 기준 커밋 이후 변경을 찾아 반영합니다 (Claude Code에서는 `/sync-v1`).
+
+```bash
+bash scripts/v1-sync.sh                    # 반영할 V1 커밋과 바뀐 폴더를 분류해 보기
+```
+
+```bash
+bash scripts/v1-sync.sh apply <앱 폴더>    # 그 앱의 V1 변경을 3-way로 적용 (겹치는 곳은 충돌 표시)
+```
 
 ## 📚 공통 라이브러리
 - [libraries/DeskStreamV2Core](./libraries/DeskStreamV2Core/) (v0.8.0) — 화면 엔진(4버스 동시 BitBang)·버튼·부저·WiFi·NTP·설정 저장.
