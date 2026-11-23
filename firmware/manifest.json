@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-11-23T16:34:25.787Z",
+  "generatedAt": "2026-11-23T16:43:36.359Z",
   "chip": "ESP32-C3",
   "board": "DeskStream V2 (ESP32-C3 SuperMini · 4× 1.3\" OLED)",
   "flashDefaults": {
@@ -29,7 +29,7 @@
       },
       "exportedAt": "2026-11-23T16:03:28.660Z",
       "sourcePath": "Smart_Info_Station",
-      "sourceCommit": "970c8df4452aaafbdc76db4c9eb2adbbb58a85fe",
+      "sourceCommit": "f0e293ec9cf735e6274324519def88a09bb73644",
       "images": [
         {
           "offset": "0x0",
@@ -77,7 +77,7 @@
       },
       "exportedAt": "2026-11-23T16:05:37.294Z",
       "sourcePath": "Sound_Visualizer_4_OLEDs",
-      "sourceCommit": "970c8df4452aaafbdc76db4c9eb2adbbb58a85fe",
+      "sourceCommit": "f0e293ec9cf735e6274324519def88a09bb73644",
       "images": [
         {
           "offset": "0x0",
@@ -125,7 +125,7 @@
       },
       "exportedAt": "2026-11-23T16:07:40.891Z",
       "sourcePath": "OLED_Wide_test",
-      "sourceCommit": "970c8df4452aaafbdc76db4c9eb2adbbb58a85fe",
+      "sourceCommit": "f0e293ec9cf735e6274324519def88a09bb73644",
       "images": [
         {
           "offset": "0x0",
@@ -173,7 +173,7 @@
       },
       "exportedAt": "2026-11-23T16:09:24.947Z",
       "sourcePath": "Stats_Monitor",
-      "sourceCommit": "970c8df4452aaafbdc76db4c9eb2adbbb58a85fe",
+      "sourceCommit": "f0e293ec9cf735e6274324519def88a09bb73644",
       "images": [
         {
           "offset": "0x0",
@@ -221,7 +221,7 @@
       },
       "exportedAt": "2026-11-23T16:11:27.688Z",
       "sourcePath": "DS_DECK",
-      "sourceCommit": "970c8df4452aaafbdc76db4c9eb2adbbb58a85fe",
+      "sourceCommit": "f0e293ec9cf735e6274324519def88a09bb73644",
       "images": [
         {
           "offset": "0x0",
@@ -269,7 +269,7 @@
       },
       "exportedAt": "2026-11-23T16:13:35.264Z",
       "sourcePath": "Screen_To_OLEDs/Screen_To_OLEDs",
-      "sourceCommit": "970c8df4452aaafbdc76db4c9eb2adbbb58a85fe",
+      "sourceCommit": "f0e293ec9cf735e6274324519def88a09bb73644",
       "images": [
         {
           "offset": "0x0",
@@ -317,7 +317,7 @@
       },
       "exportedAt": "2026-11-23T16:15:09.063Z",
       "sourcePath": "Game_Of_Life",
-      "sourceCommit": "970c8df4452aaafbdc76db4c9eb2adbbb58a85fe",
+      "sourceCommit": "f0e293ec9cf735e6274324519def88a09bb73644",
       "images": [
         {
           "offset": "0x0",
@@ -365,7 +365,7 @@
       },
       "exportedAt": "2026-11-23T16:16:39.502Z",
       "sourcePath": "Hangeul_Clock",
-      "sourceCommit": "970c8df4452aaafbdc76db4c9eb2adbbb58a85fe",
+      "sourceCommit": "f0e293ec9cf735e6274324519def88a09bb73644",
       "images": [
         {
           "offset": "0x0",
@@ -413,7 +413,7 @@
       },
       "exportedAt": "2026-11-23T16:18:10.407Z",
       "sourcePath": "ENG_Clock",
-      "sourceCommit": "970c8df4452aaafbdc76db4c9eb2adbbb58a85fe",
+      "sourceCommit": "f0e293ec9cf735e6274324519def88a09bb73644",
       "images": [
         {
           "offset": "0x0",
@@ -461,7 +461,7 @@
       },
       "exportedAt": "2026-11-23T16:19:40.936Z",
       "sourcePath": "Chinese_Clock",
-      "sourceCommit": "970c8df4452aaafbdc76db4c9eb2adbbb58a85fe",
+      "sourceCommit": "f0e293ec9cf735e6274324519def88a09bb73644",
       "images": [
         {
           "offset": "0x0",
@@ -509,7 +509,7 @@
       },
       "exportedAt": "2026-11-23T16:21:12.261Z",
       "sourcePath": "Universal_Timer",
-      "sourceCommit": "970c8df4452aaafbdc76db4c9eb2adbbb58a85fe",
+      "sourceCommit": "f0e293ec9cf735e6274324519def88a09bb73644",
       "images": [
         {
           "offset": "0x0",
@@ -557,7 +557,7 @@
       },
       "exportedAt": "2026-11-23T16:23:07.861Z",
       "sourcePath": "Agent_Monitor",
-      "sourceCommit": "970c8df4452aaafbdc76db4c9eb2adbbb58a85fe",
+      "sourceCommit": "f0e293ec9cf735e6274324519def88a09bb73644",
       "images": [
         {
           "offset": "0x0",
@@ -605,7 +605,7 @@
       },
       "exportedAt": "2026-11-23T16:25:03.700Z",
       "sourcePath": "Wireless_Analyzer",
-      "sourceCommit": "970c8df4452aaafbdc76db4c9eb2adbbb58a85fe",
+      "sourceCommit": "f0e293ec9cf735e6274324519def88a09bb73644",
       "images": [
         {
           "offset": "0x0",
@@ -653,7 +653,7 @@
       },
       "exportedAt": "2026-11-23T16:26:38.860Z",
       "sourcePath": "World_Clock",
-      "sourceCommit": "970c8df4452aaafbdc76db4c9eb2adbbb58a85fe",
+      "sourceCommit": "f0e293ec9cf735e6274324519def88a09bb73644",
       "images": [
         {
           "offset": "0x0",
@@ -701,7 +701,7 @@
       },
       "exportedAt": "2026-11-23T16:28:34.828Z",
       "sourcePath": "Page_Turner",
-      "sourceCommit": "970c8df4452aaafbdc76db4c9eb2adbbb58a85fe",
+      "sourceCommit": "f0e293ec9cf735e6274324519def88a09bb73644",
       "images": [
         {
           "offset": "0x0",
@@ -733,7 +733,7 @@
       "id": "Launcher",
       "kind": "launcher",
       "name": "런처 (esp-launcher)",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "icon": "🚀",
       "order": 100,
       "description": "기기 화면에서 펌웨어 목록을 골라 Wi-Fi로 설치하는 런처. 한 번 설치하면 다른 프로젝트를 구워도 남아 있고, BTN1을 누른 채 리셋해 2초 유지하면 런처로 돌아옵니다.",
@@ -748,9 +748,9 @@
         "freq": "80m",
         "size": "4MB"
       },
-      "exportedAt": "2026-11-23T16:00:57+00:00",
+      "exportedAt": "2026-11-23T16:41:26+00:00",
       "sourcePath": "firmware/Launcher",
-      "sourceCommit": "e0702a371b0e322f751ee60fe75ae5dfd89b8dc6",
+      "sourceCommit": "6e65a3b6466c5d1f0cbf16e883f14d2ed892e799",
       "images": [
         {
           "offset": "0x0",
@@ -774,7 +774,7 @@
           "offset": "0x10000",
           "path": "firmware/Launcher/esp-launcher.bin",
           "size": 856672,
-          "sha256": "190274b20f516bdac2fb93f9b297291fb13055db5696aff0abb1b06cf6caffef"
+          "sha256": "bed4b233cc5a1e292e48280113f41faa1dbc9a52e46273665f7cf9ac801269a1"
         }
       ]
     }

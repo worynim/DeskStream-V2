@@ -1,5 +1,11 @@
 # DeskStream V2 Release Notes
 
+## [v0.17.1] - 2026-11-24
+### 🔄 런처 0.3.1 — V2 화면 방향
+- 런처 0.3.0은 패널마다 화면이 180도 뒤집혀 나왔다. V2 보드는 패널이 뒤집혀 붙어 있어(앱도 `U8G2_R2`가 정방향)
+  esp-launcher V2 보드 정의에서 `rotate180`을 켰다. `firmware/Launcher/` 번들을 0.3.1로 바꿨다.
+- 실기 확인 — 런처 화면 정방향, 메뉴·버튼 정상. 0.3.0을 설치한 보드는 런처 Info → Update로 0.3.1을 받는다.
+
 ## [v0.17.0] - 2026-11-24
 ### 🌐 웹 플래셔 · 🚀 런처(esp-launcher) 추가
 - **웹 플래셔 1.10.0** (`web/`·`tools/collect-firmware.mjs`·`firmware/`·`.github/workflows/deploy-web.yml`): V1 1.9.0(V1 `3913776`)을 가져와

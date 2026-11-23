@@ -217,13 +217,13 @@
       "type": "launcher",
       "name": "런처 (esp-launcher)",
       "nameEn": "Launcher (esp-launcher)",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "chip": "esp32c3",
       "board": "deskstream_v2_c3",
       "layout": "ds4m-v1",
       "url": "https://worynim.github.io/DeskStream-V2/firmware/Launcher/esp-launcher.bin",
       "size": 856672,
-      "sha256": "190274b20f516bdac2fb93f9b297291fb13055db5696aff0abb1b06cf6caffef",
+      "sha256": "bed4b233cc5a1e292e48280113f41faa1dbc9a52e46273665f7cf9ac801269a1",
       "desc": "런처 업데이트: 설치하면 이 런처로 바뀝니다 (설치된 앱은 지워지고 Wi-Fi·데이터는 남음)",
       "descEn": "Launcher update: installing replaces the launcher (removes the installed app; Wi-Fi and data stay)"
     }

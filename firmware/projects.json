@@ -212,7 +212,7 @@
       "id": "Launcher",
       "kind": "launcher",
       "name": "런처 (esp-launcher)",
-      "version": "0.3.0",
+      "version": "0.3.1",
       "icon": "🚀",
       "order": 100,
       "sourcePath": "firmware/Launcher",

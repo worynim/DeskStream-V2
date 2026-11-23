@@ -43,7 +43,7 @@ V2 각 앱이 V1의 어느 버전에서 이식·동기화됐는지 기록한다.
 | Wireless_Analyzer | 0.5.1 | 0.6.0 |
 | Page_Turner | 1.1.0 | 1.2.0 |
 | 웹 플래셔 (`web/`) | 1.9.0 | 1.10.0 |
-| 런처 번들 (esp-launcher, 보드 `deskstream_v2_c3`) | 0.2.1 (`deskstream_c3`) | 0.3.0 |
+| 런처 번들 (esp-launcher, 보드 `deskstream_v2_c3`) | 0.2.1 (`deskstream_c3`) | 0.3.1 |
 
 - PC 쪽(`Stats_Monitor/client_py`, `Screen_To_OLEDs/` 파이썬, `Agent_Monitor/bridge_py`·`p0_spike`)은
   V1과 같은 파일이라 패치가 그대로 적용된다.
