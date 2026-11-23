@@ -32,7 +32,7 @@ ds::DisplayCore disp;
 ds::Buttons buttons;
 
 void setup() {
-    disp.begin();                         // 기본값 = 반주기 150ns · U8G2_R2 · 열 보정 U8g2 기본(SH1106 = 2)
+    disp.begin();                         // 기본값 = 반주기 150ns · U8G2_R2 · 열 보정은 저장된 OLED 종류(SH1106 = 2, SSD1306 = 0)
     buttons.begin();
     buttons.setCallbacks(0, onShort, onLong);
 }
@@ -56,6 +56,7 @@ void loop() {
 |:--|:--|:--|
 | `src/ds_board.h` | V2 핀 맵(버튼·부저·마이크·SCL·버스별 SDA·화면↔버스)·OLED 주소·화면 치수 | 루트 `HARDWARE.md` |
 | `src/display/ds_display.*` | **DisplayCore** — U8G2 SH1106 4개(개별 1KB 버퍼)·셰도 diff·4버스 동시 전송(실패 시 순차 폴백)·밝기/반전/플립·FPS 벤치마크 | V2 display_manager + V1 |
+| `src/display/ds_panel_type.*` | OLED 종류(SH1106 / SSD1306) — NVS `ds_board`/`oled` 저장, BTN2+RESET 2초 전환 판정. `DisplayCore::begin()`이 처리 | 신규 |
 | `src/display/ds_display_config.h` | 화면 엔진 설정(회전·열 보정·반주기·SCL 대기·자가 복구 한도) + 실측 근거 | V2 config.h |
 | `src/display/ds_i2c_platform.*` | 셰도 버퍼·캡처 후 재생·부팅 버스 스캔·버스 자가 복구 | V2 i2c_platform |
 | `src/display/ds_bitbang_i2c.*` | 4버스 동시 BitBang 드라이버 (레지스터 직접·보정 NOP·니블 표) | V2 bitbang_i2c |

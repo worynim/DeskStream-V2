@@ -23,6 +23,7 @@
 #include <U8g2lib.h>
 #include "../ds_board.h"
 #include "ds_display_config.h"
+#include "ds_panel_type.h"
 #include "ds_i2c_platform.h"
 
 namespace ds {
@@ -91,8 +92,11 @@ private:
     /** 한 화면을 diff해 바뀐 페이지 비트(_dirty)와 구간(_first/_count)을 기록한다 */
     void diffScreen(uint8_t idx);
     void applyColOffset();
+    /** OLED 종류를 바꾼 직후 4화면에 알린다 */
+    void showPanelType();
 
     DisplayConfig _cfg;
+    PanelType _panelType = PanelType::kSH1106;   ///< NVS에 저장된 OLED 종류 (ds_panel_type.h)
     I2CPlatform _bus;
     U8G2_SH1106_128X64_NONAME_F_SW_I2C _u8g2_0, _u8g2_1, _u8g2_2, _u8g2_3;
     U8G2* _screens[kNumScreens];

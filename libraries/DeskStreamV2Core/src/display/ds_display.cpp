@@ -8,6 +8,7 @@
 #include "ds_display.h"
 #include "ds_canvas.h"
 #include "ds_frame_diff.h"
+#include "ds_panel_type.h"
 
 namespace ds {
 
@@ -21,8 +22,21 @@ DisplayCore::DisplayCore()
 }
 
 void DisplayCore::applyColOffset() {
-    if (_cfg.colOffset < 0) return;
-    for (int i = 0; i < kNumScreens; i++) _screens[i]->getU8x8()->x_offset = (uint8_t)_cfg.colOffset;
+    const uint8_t off = _cfg.colOffset >= 0 ? (uint8_t)_cfg.colOffset : panelColOffset(_panelType);
+    for (int i = 0; i < kNumScreens; i++) _screens[i]->getU8x8()->x_offset = off;
+}
+
+void DisplayCore::showPanelType() {
+    for (int i = 0; i < kNumScreens; i++) {
+        U8G2& s = *_screens[i];
+        s.clearBuffer();
+        s.setFont(u8g2_font_6x10_tf);
+        s.drawStr(0, 12, "OLED:");
+        s.drawStr(36, 12, panelTypeName(_panelType));
+        s.drawStr(0, 36, "Saved.");
+        s.drawStr(0, 58, "BTN2+RESET 2s: change");
+    }
+    push();
 }
 
 void DisplayCore::begin(const DisplayConfig& cfg) {
@@ -42,9 +56,22 @@ void DisplayCore::begin(const DisplayConfig& cfg) {
         _screens[i]->getU8x8()->byte_cb = kBbCb[kBusOfScreen[i]];
         _screens[i]->begin();
     }
+    _panelType = loadPanelType();
     applyColOffset();
 
     clearAll();
+
+    // 3. BTN2를 누른 채 리셋해 2초 유지하면 OLED 종류(SH1106 ↔ SSD1306)를 바꿔 저장하고 알린다
+    if (panelToggleRequested()) {
+        _panelType = otherPanelType(_panelType);
+        const bool saved = savePanelType(_panelType);
+        Serial.printf("[OLED] 종류 -> %s%s\n", panelTypeName(_panelType), saved ? "" : " (저장 실패)");
+        applyColOffset();
+        showPanelType();
+        while (digitalRead(kButtonPins[1]) == LOW) delay(10);   // BTN2를 뗄 때까지 (앱이 눌림으로 받지 않게)
+        delay(1000);
+        clearAll();
+    }
 }
 
 void DisplayCore::diffScreen(uint8_t idx) {

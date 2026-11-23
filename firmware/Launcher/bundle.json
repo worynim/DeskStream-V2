@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "launcher": "esp-launcher",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "board": "deskstream_v2_c3",
   "chip": "esp32c3",
   "layout": "ds4m-v1",
@@ -10,8 +10,8 @@
     "freq": "80m",
     "size": "4MB"
   },
-  "commit": "6e65a3b6466c5d1f0cbf16e883f14d2ed892e799",
-  "builtAt": "2026-11-23T16:41:26+00:00",
+  "commit": "0d0efdc5fd8008f9b1b0ba6998d0269e4cdbd0fe",
+  "builtAt": "2026-11-23T16:51:46+00:00",
   "images": [
     {
       "offset": "0x0",
@@ -34,8 +34,8 @@
     {
       "offset": "0x10000",
       "file": "esp-launcher.bin",
-      "size": 856672,
-      "sha256": "bed4b233cc5a1e292e48280113f41faa1dbc9a52e46273665f7cf9ac801269a1"
+      "size": 856768,
+      "sha256": "c94d5126001377ae13e03ab23776f14d430bedd0a67358a6ed6710cb5c14a7e6"
     }
   ]
 }

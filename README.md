@@ -7,7 +7,7 @@ DeskStream(V1) 저장소의 구조(공통 라이브러리 + 프로젝트별 스�
 
 ## 🛠️ 하드웨어 사양
 - **MCU**: ESP32-C3 SuperMini (`esp32:esp32:nologo_esp32c3_super_mini`)
-- **Display**: 1.3" SH1106 128x64 OLED × 4 (주소 0x3C, 변경 불가)
+- **Display**: 1.3" SH1106 128x64 OLED × 4 (주소 0x3C, 변경 불가) — SSD1306 모듈도 지원 (BTN2를 누른 채 RESET, 2초 → 종류 전환·저장)
 - **I2C**: 4버스 BitBang — SCL GPIO 0 공유, SDA GPIO 2 / 1 / 10 / 7 (OLED1~4)
 - **Buttons**: GPIO 3 / 5 / 21 / 9 (BTN1~4)
 - **Buzzer**: GPIO 6 · **MIC**: GPIO 4 · **NeoPixel**: GPIO 8 · **GPS**: RX 20 / TX 21
@@ -101,7 +101,7 @@ PC 없이 보드에서 프로젝트를 바꿀 수 있게 해 주는 런처입니
 - 최초 1회: 저장소 **Settings → Pages → Source**를 **GitHub Actions**로 지정합니다.
 
 ## 📚 공통 라이브러리
-- [libraries/DeskStreamV2Core](./libraries/DeskStreamV2Core/) (v0.9.0) — 화면 엔진(4버스 동시 BitBang)·버튼·부저·WiFi·NTP·설정 저장.
+- [libraries/DeskStreamV2Core](./libraries/DeskStreamV2Core/) (v0.10.0) — 화면 엔진(4버스 동시 BitBang)·버튼·부저·WiFi·NTP·설정 저장.
   V1 `DeskStreamCore`와 API가 같고(`namespace ds`), 보드 정의와 화면 전송 계층만 V2용입니다.
   이름이 달라 V1·V3 라이브러리와 스케치북에 함께 둘 수 있습니다 — 스케치는 `#include <DeskStreamV2Core.h>`.
 - 새 프로젝트를 만들거나 V1 프로젝트를 옮길 때는 [AI_GUIDE.md](./AI_GUIDE.md)를 먼저 봅니다.

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-11-23T16:43:36.359Z",
+  "generatedAt": "2026-11-23T17:11:45.432Z",
   "chip": "ESP32-C3",
   "board": "DeskStream V2 (ESP32-C3 SuperMini · 4× 1.3\" OLED)",
   "flashDefaults": {
@@ -27,9 +27,9 @@
         "freq": "80m",
         "size": "4MB"
       },
-      "exportedAt": "2026-11-23T16:03:28.660Z",
+      "exportedAt": "2026-11-23T16:58:44.855Z",
       "sourcePath": "Smart_Info_Station",
-      "sourceCommit": "f0e293ec9cf735e6274324519def88a09bb73644",
+      "sourceCommit": "ebdfca5f48b8ac201a3e5b4cb076b4e1eaad05d6",
       "images": [
         {
           "offset": "0x0",
@@ -52,8 +52,8 @@
         {
           "offset": "0x10000",
           "path": "firmware/Smart_Info_Station/Smart_Info_Station.ino.bin",
-          "size": 1334128,
-          "sha256": "d8c7bbaf8995b61fad870742fb6702c152fe3c636dcf5a3f7866904ebb46554c"
+          "size": 1335152,
+          "sha256": "db35f56d20916b29ba05505126d766d2d8af91ec09192a0090b70d19e495f865"
         }
       ]
     },
@@ -75,9 +75,9 @@
         "freq": "80m",
         "size": "4MB"
       },
-      "exportedAt": "2026-11-23T16:05:37.294Z",
+      "exportedAt": "2026-11-23T16:59:39.529Z",
       "sourcePath": "Sound_Visualizer_4_OLEDs",
-      "sourceCommit": "f0e293ec9cf735e6274324519def88a09bb73644",
+      "sourceCommit": "ebdfca5f48b8ac201a3e5b4cb076b4e1eaad05d6",
       "images": [
         {
           "offset": "0x0",
@@ -100,8 +100,8 @@
         {
           "offset": "0x10000",
           "path": "firmware/Sound_Visualizer_4_OLEDs/Sound_Visualizer_4_OLEDs.ino.bin",
-          "size": 497392,
-          "sha256": "e9a88a6a110c42f4ba603cdfec590e8c0b677f1d186cd23a61ae747c99561cdd"
+          "size": 500928,
+          "sha256": "26d27651a0d8747ea7686d85814487ea9f7f1cbd93618981818d71a4e522e1ff"
         }
       ]
     },
@@ -123,9 +123,9 @@
         "freq": "80m",
         "size": "4MB"
       },
-      "exportedAt": "2026-11-23T16:07:40.891Z",
+      "exportedAt": "2026-11-23T17:00:33.297Z",
       "sourcePath": "OLED_Wide_test",
-      "sourceCommit": "f0e293ec9cf735e6274324519def88a09bb73644",
+      "sourceCommit": "ebdfca5f48b8ac201a3e5b4cb076b4e1eaad05d6",
       "images": [
         {
           "offset": "0x0",
@@ -148,8 +148,8 @@
         {
           "offset": "0x10000",
           "path": "firmware/OLED_Wide_test/OLED_Wide_test.ino.bin",
-          "size": 469136,
-          "sha256": "ca1f695947827d5ef310667f1306ac6e6737157a95561a1b2c3f514eddb3ec71"
+          "size": 472672,
+          "sha256": "a472f6b00d40ec8eb0aaceb7d31c2f46eb8347a3710e73626fc3672ee1a40eac"
         }
       ]
     },
@@ -171,9 +171,9 @@
         "freq": "80m",
         "size": "4MB"
       },
-      "exportedAt": "2026-11-23T16:09:24.947Z",
+      "exportedAt": "2026-11-23T17:01:28.062Z",
       "sourcePath": "Stats_Monitor",
-      "sourceCommit": "f0e293ec9cf735e6274324519def88a09bb73644",
+      "sourceCommit": "ebdfca5f48b8ac201a3e5b4cb076b4e1eaad05d6",
       "images": [
         {
           "offset": "0x0",
@@ -196,8 +196,8 @@
         {
           "offset": "0x10000",
           "path": "firmware/Stats_Monitor/Stats_Monitor.ino.bin",
-          "size": 766592,
-          "sha256": "7990cb1b4a23df302a950ec1d4e1acb3c112a9e411583264d84b34303cf802c5"
+          "size": 768096,
+          "sha256": "e503f54dcb1ff8a0498055abce9790246d2b4de2829482dad7cc1944d3f3d65a"
         }
       ]
     },
@@ -219,9 +219,9 @@
         "freq": "80m",
         "size": "4MB"
       },
-      "exportedAt": "2026-11-23T16:11:27.688Z",
+      "exportedAt": "2026-11-23T17:02:25.366Z",
       "sourcePath": "DS_DECK",
-      "sourceCommit": "f0e293ec9cf735e6274324519def88a09bb73644",
+      "sourceCommit": "ebdfca5f48b8ac201a3e5b4cb076b4e1eaad05d6",
       "images": [
         {
           "offset": "0x0",
@@ -244,8 +244,8 @@
         {
           "offset": "0x10000",
           "path": "firmware/DS_DECK/DS_DECK.ino.bin",
-          "size": 1424592,
-          "sha256": "bb50807160d3f2133bdb6133244620ab61d61556c7d13753a2f07d7989cc4a88"
+          "size": 1426080,
+          "sha256": "ab28294322fd0682d0aace040a5d7d300774ad4a7ec33e4106cb3139c5a56fcd"
         }
       ]
     },
@@ -267,9 +267,9 @@
         "freq": "80m",
         "size": "4MB"
       },
-      "exportedAt": "2026-11-23T16:13:35.264Z",
+      "exportedAt": "2026-11-23T17:03:13.571Z",
       "sourcePath": "Screen_To_OLEDs/Screen_To_OLEDs",
-      "sourceCommit": "f0e293ec9cf735e6274324519def88a09bb73644",
+      "sourceCommit": "ebdfca5f48b8ac201a3e5b4cb076b4e1eaad05d6",
       "images": [
         {
           "offset": "0x0",
@@ -292,8 +292,8 @@
         {
           "offset": "0x10000",
           "path": "firmware/Screen_To_OLEDs/Screen_To_OLEDs.ino.bin",
-          "size": 1105248,
-          "sha256": "46eea06066e3061e17a8fb3d35f07d640db8f42a5c9156647bbf705fe62f13b4"
+          "size": 1108784,
+          "sha256": "dae397ce26553b0914622f5fcc642e59676c0be233156f671840d3d435a7d6ab"
         }
       ]
     },
@@ -315,9 +315,9 @@
         "freq": "80m",
         "size": "4MB"
       },
-      "exportedAt": "2026-11-23T16:15:09.063Z",
+      "exportedAt": "2026-11-23T17:04:07.104Z",
       "sourcePath": "Game_Of_Life",
-      "sourceCommit": "f0e293ec9cf735e6274324519def88a09bb73644",
+      "sourceCommit": "ebdfca5f48b8ac201a3e5b4cb076b4e1eaad05d6",
       "images": [
         {
           "offset": "0x0",
@@ -340,8 +340,8 @@
         {
           "offset": "0x10000",
           "path": "firmware/Game_Of_Life/Game_Of_Life.ino.bin",
-          "size": 426272,
-          "sha256": "29279f2f5fd27295c00222a3b5dd8bdba79c9feb401082b9adc1e3a474b19274"
+          "size": 438688,
+          "sha256": "d663d9fb9a915b85c70aa770d63ba4e83116adf7e55d745de752492e89fb4c92"
         }
       ]
     },
@@ -363,9 +363,9 @@
         "freq": "80m",
         "size": "4MB"
       },
-      "exportedAt": "2026-11-23T16:16:39.502Z",
+      "exportedAt": "2026-11-23T17:04:56.706Z",
       "sourcePath": "Hangeul_Clock",
-      "sourceCommit": "f0e293ec9cf735e6274324519def88a09bb73644",
+      "sourceCommit": "ebdfca5f48b8ac201a3e5b4cb076b4e1eaad05d6",
       "images": [
         {
           "offset": "0x0",
@@ -388,8 +388,8 @@
         {
           "offset": "0x10000",
           "path": "firmware/Hangeul_Clock/Hangeul_Clock.ino.bin",
-          "size": 1225632,
-          "sha256": "035f6f04f4a3cd8b744b9035494f49089a3a7c136de146aa7b531f3342fd6c5a"
+          "size": 1226672,
+          "sha256": "a55547ecf33da81b7fb2c1097e8d217465bfa056c3da43eee12ff338525cb86f"
         }
       ]
     },
@@ -411,9 +411,9 @@
         "freq": "80m",
         "size": "4MB"
       },
-      "exportedAt": "2026-11-23T16:18:10.407Z",
+      "exportedAt": "2026-11-23T17:05:48.963Z",
       "sourcePath": "ENG_Clock",
-      "sourceCommit": "f0e293ec9cf735e6274324519def88a09bb73644",
+      "sourceCommit": "ebdfca5f48b8ac201a3e5b4cb076b4e1eaad05d6",
       "images": [
         {
           "offset": "0x0",
@@ -436,8 +436,8 @@
         {
           "offset": "0x10000",
           "path": "firmware/ENG_Clock/ENG_Clock.ino.bin",
-          "size": 1240848,
-          "sha256": "b0d0f09baeb9ad942062a4014fbf3bc990ce1b7bf5cd368a4d232a44abc5e5ad"
+          "size": 1241888,
+          "sha256": "1ce4fe09d0874640e423d38302a6366050832e5fc50afaa408804010d855f753"
         }
       ]
     },
@@ -459,9 +459,9 @@
         "freq": "80m",
         "size": "4MB"
       },
-      "exportedAt": "2026-11-23T16:19:40.936Z",
+      "exportedAt": "2026-11-23T17:06:38.802Z",
       "sourcePath": "Chinese_Clock",
-      "sourceCommit": "f0e293ec9cf735e6274324519def88a09bb73644",
+      "sourceCommit": "ebdfca5f48b8ac201a3e5b4cb076b4e1eaad05d6",
       "images": [
         {
           "offset": "0x0",
@@ -484,8 +484,8 @@
         {
           "offset": "0x10000",
           "path": "firmware/Chinese_Clock/Chinese_Clock.ino.bin",
-          "size": 1237296,
-          "sha256": "78d7a271fbbd3a9a58d9201b4bbe469adc9590713c0b7f291e4707d7a14e1d3a"
+          "size": 1238336,
+          "sha256": "224b8aa1d8630a5a6520c5a38ce222763a8ea579edb3238c0218512d5965433d"
         }
       ]
     },
@@ -507,9 +507,9 @@
         "freq": "80m",
         "size": "4MB"
       },
-      "exportedAt": "2026-11-23T16:21:12.261Z",
+      "exportedAt": "2026-11-23T17:07:31.980Z",
       "sourcePath": "Universal_Timer",
-      "sourceCommit": "f0e293ec9cf735e6274324519def88a09bb73644",
+      "sourceCommit": "ebdfca5f48b8ac201a3e5b4cb076b4e1eaad05d6",
       "images": [
         {
           "offset": "0x0",
@@ -532,8 +532,8 @@
         {
           "offset": "0x10000",
           "path": "firmware/Universal_Timer/Universal_Timer.ino.bin",
-          "size": 442672,
-          "sha256": "ee5a4254c7e9071f96f64e40271b9b672e035d7eca7be02b9498273607a8f0ff"
+          "size": 445744,
+          "sha256": "576f83b01f494dba1b89f810bf1ee761592be60043ec1df14d6f5c64ba8c091c"
         }
       ]
     },
@@ -555,9 +555,9 @@
         "freq": "80m",
         "size": "4MB"
       },
-      "exportedAt": "2026-11-23T16:23:07.861Z",
+      "exportedAt": "2026-11-23T17:08:34.372Z",
       "sourcePath": "Agent_Monitor",
-      "sourceCommit": "f0e293ec9cf735e6274324519def88a09bb73644",
+      "sourceCommit": "ebdfca5f48b8ac201a3e5b4cb076b4e1eaad05d6",
       "images": [
         {
           "offset": "0x0",
@@ -580,8 +580,8 @@
         {
           "offset": "0x10000",
           "path": "firmware/Agent_Monitor/Agent_Monitor.ino.bin",
-          "size": 911152,
-          "sha256": "04cf4b37b64950868dbf2dea04d5241e45f06225a85aa5fb3b98d86216942406"
+          "size": 914192,
+          "sha256": "f50dc5b850a48056bd7edbdfe825bc286a961f1f9ffa7e54b0d18f176b19442a"
         }
       ]
     },
@@ -603,9 +603,9 @@
         "freq": "80m",
         "size": "4MB"
       },
-      "exportedAt": "2026-11-23T16:25:03.700Z",
+      "exportedAt": "2026-11-23T17:09:30.818Z",
       "sourcePath": "Wireless_Analyzer",
-      "sourceCommit": "f0e293ec9cf735e6274324519def88a09bb73644",
+      "sourceCommit": "ebdfca5f48b8ac201a3e5b4cb076b4e1eaad05d6",
       "images": [
         {
           "offset": "0x0",
@@ -628,8 +628,8 @@
         {
           "offset": "0x10000",
           "path": "firmware/Wireless_Analyzer/Wireless_Analyzer.ino.bin",
-          "size": 1406432,
-          "sha256": "9524c725c2c965fe2ab39ec4d6eb94c9067a167a1b0e691247b1d79292316aad"
+          "size": 1409472,
+          "sha256": "ee1ac7c66647f316cfdb6d7f02c866f41645f95bcecf956094c78c3bf20f7fe6"
         }
       ]
     },
@@ -651,9 +651,9 @@
         "freq": "80m",
         "size": "4MB"
       },
-      "exportedAt": "2026-11-23T16:26:38.860Z",
+      "exportedAt": "2026-11-23T17:10:23.990Z",
       "sourcePath": "World_Clock",
-      "sourceCommit": "f0e293ec9cf735e6274324519def88a09bb73644",
+      "sourceCommit": "ebdfca5f48b8ac201a3e5b4cb076b4e1eaad05d6",
       "images": [
         {
           "offset": "0x0",
@@ -676,8 +676,8 @@
         {
           "offset": "0x10000",
           "path": "firmware/World_Clock/World_Clock.ino.bin",
-          "size": 1261056,
-          "sha256": "026b1ca9f275cf09f21a21348dce851b05a639c3175e085fb9f410c125225d8a"
+          "size": 1264080,
+          "sha256": "9daebca64d135d82ac2923c4a2625233ad78da7f6d4f476905eca51316568217"
         }
       ]
     },
@@ -699,9 +699,9 @@
         "freq": "80m",
         "size": "4MB"
       },
-      "exportedAt": "2026-11-23T16:28:34.828Z",
+      "exportedAt": "2026-11-23T17:11:29.364Z",
       "sourcePath": "Page_Turner",
-      "sourceCommit": "f0e293ec9cf735e6274324519def88a09bb73644",
+      "sourceCommit": "ebdfca5f48b8ac201a3e5b4cb076b4e1eaad05d6",
       "images": [
         {
           "offset": "0x0",
@@ -724,8 +724,8 @@
         {
           "offset": "0x10000",
           "path": "firmware/Page_Turner/Page_Turner.ino.bin",
-          "size": 745520,
-          "sha256": "a17c7f0fab0d9eb0a7cbbf525b2dadeb534e051e5f37a81dbaa4d3deddc14479"
+          "size": 746544,
+          "sha256": "799059220a8f8047dcb90a4f7ef5d7594fc01ab326b645f6cd85639ece18fd48"
         }
       ]
     },
@@ -733,7 +733,7 @@
       "id": "Launcher",
       "kind": "launcher",
       "name": "런처 (esp-launcher)",
-      "version": "0.3.1",
+      "version": "0.4.0",
       "icon": "🚀",
       "order": 100,
       "description": "기기 화면에서 펌웨어 목록을 골라 Wi-Fi로 설치하는 런처. 한 번 설치하면 다른 프로젝트를 구워도 남아 있고, BTN1을 누른 채 리셋해 2초 유지하면 런처로 돌아옵니다.",
@@ -748,9 +748,9 @@
         "freq": "80m",
         "size": "4MB"
       },
-      "exportedAt": "2026-11-23T16:41:26+00:00",
+      "exportedAt": "2026-11-23T16:51:46+00:00",
       "sourcePath": "firmware/Launcher",
-      "sourceCommit": "6e65a3b6466c5d1f0cbf16e883f14d2ed892e799",
+      "sourceCommit": "0d0efdc5fd8008f9b1b0ba6998d0269e4cdbd0fe",
       "images": [
         {
           "offset": "0x0",
@@ -773,8 +773,8 @@
         {
           "offset": "0x10000",
           "path": "firmware/Launcher/esp-launcher.bin",
-          "size": 856672,
-          "sha256": "bed4b233cc5a1e292e48280113f41faa1dbc9a52e46273665f7cf9ac801269a1"
+          "size": 856768,
+          "sha256": "c94d5126001377ae13e03ab23776f14d430bedd0a67358a6ed6710cb5c14a7e6"
         }
       ]
     }

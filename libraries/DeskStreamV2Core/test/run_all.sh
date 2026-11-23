@@ -24,6 +24,7 @@ TESTS=(
   "test_bitbang_core|"
   "test_frame_diff|"
   "test_wifi_portal|net/ds_wifi_portal_util.cpp"
+  "test_panel_type|"
 )
 
 fail=0

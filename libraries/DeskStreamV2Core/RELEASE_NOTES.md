@@ -2,6 +2,16 @@
 
 > v0.6.1 이하는 DeskStream(V1) 저장소 `DeskStreamCore`의 이력이다.
 
+## [v0.10.0] - 2026-11-24
+### 🖥️ SSD1306 OLED 지원 — BTN2+RESET으로 종류 전환
+- `display/ds_panel_type.*`: OLED 종류(SH1106 / SSD1306)를 NVS 이름공간 `ds_board`, 키 `oled`(u8: 0 = SH1106, 1 = SSD1306)에 둔다.
+  값이 없으면 SH1106 — 지금까지와 같다. 런처(esp-launcher `deskstream_v2_c3`)도 같은 키를 읽는다.
+- `DisplayCore::begin()`: 저장된 종류로 열 보정(SH1106 = 2, SSD1306 = 0)을 정한다. 전원·RESET으로 켜졌고 **BTN2를 2초 누르고 있으면**
+  종류를 바꿔 저장하고 4화면에 "OLED: SSD1306 / Saved."를 보여 준 뒤 BTN2를 뗄 때까지 기다린다.
+  딥슬립 깨우기(Page_Turner가 BTN2로 깨움)·소프트웨어 재시작은 무시한다.
+- `DisplayConfig::colOffset`: 기본값 -1의 뜻이 "U8g2 기본값(2)"에서 "저장된 종류"로 바뀌었다. 0 이상을 주면 그 값을 쓴다 (설정하는 앱은 없음).
+- 호스트 테스트 `test_panel_type` 추가. **이 라이브러리를 쓰는 모든 스케치를 다시 빌드해야 전환이 동작한다.**
+
 ## [v0.9.0] - 2026-11-24
 ### 🚀 `ds::returnToLauncher()` — 런처로 돌아가기 (V1 v0.7.0 반영)
 - `sys/ds_launcher.*`: factory 파티션(런처 esp-launcher)이 있으면 다음 부팅을 런처로 정하고 재시작한다.
