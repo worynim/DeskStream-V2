@@ -1,0 +1,609 @@
+#!/usr/bin/env node
+/**
+ * DeskStream V2 웹 플래셔용 펌웨어 수집 스크립트
+ *
+ * Arduino IDE 의 "Export Compiled Binary" 결과(build/**\/flash_args)에서
+ * 실제 업로드에 필요한 .bin 4종만 firmware/<project>/ 로 복사하고,
+ * 웹 플래셔가 읽는 firmware/manifest.json 을 생성합니다.
+ * kind "launcher" 항목은 esp-launcher 의 tools/mkbundle.py 가 내보낸 번들(<sourcePath>/bundle.json)을 그대로 씁니다.
+ * 전체 수집 때는 런처가 기기에서 읽는 펌웨어 목록 firmware/manifest.launcher.json 도 함께 만듭니다.
+ *
+ * 사용법:
+ *   node tools/collect-firmware.mjs                  # 전체 수집 + manifest 생성
+ *   node tools/collect-firmware.mjs --project Hangeul_Clock
+ *   node tools/collect-firmware.mjs --check          # CI: 커밋된 manifest/바이너리·clients.json 검증
+ */
+import fs from "node:fs";
+import path from "node:path";
+import crypto from "node:crypto";
+import { fileURLToPath } from "node:url";
+
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const META_PATH = path.join(ROOT, "firmware", "projects.json");
+const MANIFEST_PATH = path.join(ROOT, "firmware", "manifest.json");
+const CLIENTS_PATH = path.join(ROOT, "firmware", "clients.json");
+const CATALOG_PATH = path.join(ROOT, "firmware", "manifest.launcher.json");
+const APP_OFFSET = "0x10000";
+// ESP 이미지 헤더 chip_id(오프셋 12, uint16 LE) → 런처 카탈로그 chip 이름
+const CHIP_IDS = { 0: "esp32", 2: "esp32s2", 5: "esp32c3", 9: "esp32s3", 12: "esp32c2", 13: "esp32c6", 16: "esp32h2" };
+const CLIENT_PLATFORMS = new Set(["macos-arm64", "windows-x64"]);
+// 웹 플래셔 i18n(clientPermissions)에 안내 문구가 있는 권한만 허용
+const CLIENT_PERMISSIONS = new Set(["bluetooth", "accessibility", "screenRecording", "localNetwork", "windowsFirewall"]);
+
+const argv = process.argv.slice(2);
+const CHECK = argv.includes("--check");
+const projectIdx = argv.indexOf("--project");
+const PROJECT_FILTER = projectIdx >= 0 ? argv[projectIdx + 1] : null;
+
+const SOURCE_EXT = new Set([".ino", ".c", ".cpp", ".cxx", ".h", ".hpp", ".hh"]);
+// 공통 라이브러리 — 이를 include 하는 스케치는 라이브러리 변경도 "소스 최신" 판정에 포함한다
+const CORE_LIB_DIR = path.join(ROOT, "libraries", "DeskStreamV2Core");
+const CORE_LIB_HEADER = "DeskStreamV2Core.h";
+const FLASH_MODE = new Set(["qio", "qout", "dio", "dout"]);
+const FLASH_FREQ = new Set(["80m", "40m", "26m", "20m"]);
+
+function readJson(file) {
+  return JSON.parse(fs.readFileSync(file, "utf8"));
+}
+
+function sha256(buf) {
+  return crypto.createHash("sha256").update(buf).digest("hex");
+}
+
+function toPosix(p) {
+  return p.split(path.sep).join("/");
+}
+
+/** 스케치 폴더 최상위 소스 중 하나라도 공통 라이브러리 헤더를 include 하는가 */
+function usesCoreLib(sketchDir) {
+  let entries = [];
+  try {
+    entries = fs.readdirSync(sketchDir, { withFileTypes: true });
+  } catch {
+    return false;
+  }
+  return entries.some((entry) => {
+    if (!entry.isFile() || !SOURCE_EXT.has(path.extname(entry.name).toLowerCase())) return false;
+    try {
+      return fs.readFileSync(path.join(sketchDir, entry.name), "utf8").includes(CORE_LIB_HEADER);
+    } catch {
+      return false;
+    }
+  });
+}
+
+function newestMtime(dir, predicate, skipDirNames) {
+  let newest = 0;
+  const stack = [dir];
+  while (stack.length) {
+    const current = stack.pop();
+    let entries;
+    try {
+      entries = fs.readdirSync(current, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      const full = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        if (skipDirNames.has(entry.name)) continue;
+        stack.push(full);
+      } else if (entry.isFile() && predicate(entry.name)) {
+        try {
+          const m = fs.statSync(full).mtimeMs;
+          if (m > newest) newest = m;
+        } catch {
+          /* ignore */
+        }
+      }
+    }
+  }
+  return newest;
+}
+
+/** build/ 및 build/<fqbn>/ 에서 flash_args 후보를 찾는다. */
+function findExportSets(project) {
+  const sketchDir = path.join(ROOT, project.sourcePath);
+  const buildDir = path.join(sketchDir, "build");
+  const sets = [];
+  if (fs.existsSync(path.join(buildDir, "flash_args"))) sets.push(buildDir);
+  let entries = [];
+  try {
+    entries = fs.readdirSync(buildDir, { withFileTypes: true });
+  } catch {
+    return sets;
+  }
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const candidate = path.join(buildDir, entry.name);
+    if (fs.existsSync(path.join(candidate, "flash_args"))) sets.push(candidate);
+  }
+  return sets;
+}
+
+/** flash_args 파싱: { mode, freq, size, images: [{ offset, file }] } */
+function parseFlashArgs(file) {
+  const lines = fs
+    .readFileSync(file, "utf8")
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const header = lines.shift() ?? "";
+  const mode = header.match(/--flash-mode\s+(\S+)/)?.[1]?.toLowerCase();
+  const freq = header.match(/--flash-freq\s+(\S+)/)?.[1]?.toLowerCase();
+  const size = header.match(/--flash-size\s+(\S+)/)?.[1]?.toUpperCase();
+  const images = [];
+  for (const line of lines) {
+    const match = line.match(/^(0x[0-9a-fA-F]+)\s+(.+)$/);
+    if (!match) continue;
+    images.push({ offset: match[1].toLowerCase(), file: match[2].trim() });
+  }
+  return { mode, freq, size, images };
+}
+
+function readFqbn(dir) {
+  const optionsPath = path.join(dir, "build.options.json");
+  try {
+    return readJson(optionsPath).fqbn ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function partitionSchemeOf(fqbn) {
+  return fqbn?.match(/PartitionScheme=([^,]+)/)?.[1] ?? null;
+}
+
+/** partitions.csv 에서 app0 파티션 크기(바이트)를 찾는다. */
+function app0SizeOf(dir) {
+  const csvPath = path.join(dir, "partitions.csv");
+  try {
+    for (const line of fs.readFileSync(csvPath, "utf8").split(/\r?\n/)) {
+      const cols = line.split(",").map((c) => c.trim());
+      if (cols[0] === "app0" && cols[4]) {
+        const size = Number.parseInt(cols[4], 16);
+        if (Number.isFinite(size)) return size;
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  return null;
+}
+
+function completeSet(setDir, parsed) {
+  if (!parsed.mode || !parsed.freq || !parsed.size || parsed.images.length === 0) return false;
+  if (!FLASH_MODE.has(parsed.mode) || !FLASH_FREQ.has(parsed.freq)) return false;
+  return parsed.images.every((image) => fs.existsSync(path.join(setDir, image.file)));
+}
+
+function collectProject(project) {
+  const sets = findExportSets(project)
+    .map((dir) => {
+      const flashArgsPath = path.join(dir, "flash_args");
+      let mtime = 0;
+      try {
+        mtime = fs.statSync(flashArgsPath).mtimeMs;
+      } catch {
+        /* ignore */
+      }
+      return { dir, mtime, parsed: parseFlashArgs(flashArgsPath) };
+    })
+    .filter((set) => completeSet(set.dir, set.parsed))
+    .sort((a, b) => b.mtime - a.mtime);
+
+  if (sets.length === 0) {
+    return { ok: false, reason: "완전한 export(build/**/flash_args)를 찾지 못했습니다." };
+  }
+
+  const set = sets[0];
+  const { mode, freq, size, images } = set.parsed;
+  const appLimit = app0SizeOf(set.dir);
+  const seenOffsets = new Set();
+  const outputImages = [];
+
+  for (const image of images) {
+    if (seenOffsets.has(image.offset)) {
+      return { ok: false, reason: `중복 오프셋 ${image.offset}` };
+    }
+    seenOffsets.add(image.offset);
+
+    const src = path.join(set.dir, image.file);
+    const base = path.basename(image.file);
+    const destDir = path.join(ROOT, "firmware", project.id);
+    fs.mkdirSync(destDir, { recursive: true });
+    const dest = path.join(destDir, base);
+    fs.copyFileSync(src, dest);
+    const buf = fs.readFileSync(dest);
+
+    if (image.offset === "0x10000" && appLimit && buf.length > appLimit) {
+      return {
+        ok: false,
+        reason: `앱 이미지(${buf.length}B)가 app0 파티션(${appLimit}B)을 초과합니다.`,
+      };
+    }
+    if (Number.parseInt(image.offset, 16) + buf.length > 4 * 1024 * 1024) {
+      return { ok: false, reason: `${base} 이미지가 4MB 플래시 범위를 벗어납니다.` };
+    }
+
+    outputImages.push({
+      offset: image.offset,
+      path: toPosix(path.relative(ROOT, dest)),
+      size: buf.length,
+      sha256: sha256(buf),
+    });
+  }
+
+  outputImages.sort((a, b) => Number.parseInt(a.offset, 16) - Number.parseInt(b.offset, 16));
+
+  const fqbn = readFqbn(set.dir);
+  const sketchDir = path.join(ROOT, project.sourcePath);
+  const isSource = (name) => SOURCE_EXT.has(path.extname(name).toLowerCase());
+  const skipDirs = new Set(["build", ".git", "node_modules"]);
+  let sourceNewest = newestMtime(sketchDir, isSource, skipDirs);
+  if (usesCoreLib(sketchDir)) {
+    // 라이브러리의 호스트 테스트(test/)는 펌웨어에 들어가지 않으므로 src/ 만 본다
+    sourceNewest = Math.max(sourceNewest, newestMtime(path.join(CORE_LIB_DIR, "src"), isSource, skipDirs));
+  }
+  const stale = sourceNewest > set.mtime + 1000;
+
+  return {
+    ok: true,
+    stale,
+    entry: {
+      id: project.id,
+      name: project.name,
+      version: project.version,
+      icon: project.icon ?? "",
+      order: project.order ?? 999,
+      description: project.description ?? "",
+      note: project.note ?? "",
+      nameEn: project.nameEn ?? "",
+      descriptionEn: project.descriptionEn ?? "",
+      noteEn: project.noteEn ?? "",
+      fqbn,
+      partitionScheme: partitionSchemeOf(fqbn),
+      flash: { mode, freq, size },
+      exportedAt: new Date(set.mtime).toISOString(),
+      sourcePath: project.sourcePath,
+      sourceCommit: gitHead(),
+      images: outputImages,
+    },
+  };
+}
+
+/** esp-launcher 번들(bundle.json + 이미지)을 manifest 항목으로 만든다. 파일은 이미 firmware/<id>/ 에 있다. */
+function collectLauncher(project) {
+  const dir = path.join(ROOT, project.sourcePath);
+  let bundle;
+  try {
+    bundle = readJson(path.join(dir, "bundle.json"));
+  } catch {
+    return { ok: false, reason: `번들이 없습니다: ${project.sourcePath}/bundle.json (esp-launcher tools/mkbundle.py)` };
+  }
+  if (bundle.schema !== 1 || bundle.launcher !== "esp-launcher") return { ok: false, reason: "bundle.json 형식이 다릅니다." };
+  if (bundle.version !== project.version) {
+    return { ok: false, reason: `번들 버전(${bundle.version}) ≠ projects.json version(${project.version})` };
+  }
+  const images = [];
+  for (const image of bundle.images) {
+    const file = path.join(dir, image.file);
+    if (!fs.existsSync(file)) return { ok: false, reason: `파일 없음 ${image.file}` };
+    const buf = fs.readFileSync(file);
+    if (buf.length !== image.size || sha256(buf) !== image.sha256) {
+      return { ok: false, reason: `${image.file} 이 bundle.json 과 다릅니다.` };
+    }
+    images.push({ offset: image.offset, path: toPosix(path.relative(ROOT, file)), size: buf.length, sha256: image.sha256 });
+  }
+  const flash = { mode: bundle.flash.mode, freq: bundle.flash.freq, size: bundle.flash.size };
+  return {
+    ok: true,
+    stale: bundle.commit.endsWith("-dirty"),
+    staleNote: "커밋하지 않은 변경이 있는 런처 빌드",
+    entry: {
+      id: project.id,
+      kind: "launcher",
+      name: project.name,
+      version: project.version,
+      icon: project.icon ?? "",
+      order: project.order ?? 999,
+      description: project.description ?? "",
+      note: project.note ?? "",
+      nameEn: project.nameEn ?? "",
+      descriptionEn: project.descriptionEn ?? "",
+      noteEn: project.noteEn ?? "",
+      fqbn: null,
+      partitionScheme: bundle.layout,
+      flash,
+      exportedAt: bundle.builtAt,
+      sourcePath: project.sourcePath,
+      sourceCommit: bundle.commit,
+      images,
+    },
+  };
+}
+
+/** ESP 이미지 헤더의 chip_id 로 칩 이름을 얻는다. */
+function chipOfImage(file) {
+  const buf = fs.readFileSync(path.join(ROOT, file));
+  if (buf.length < 16 || buf[0] !== 0xe9) return null;
+  return CHIP_IDS[buf.readUInt16LE(12)] ?? null;
+}
+
+// 런처 업데이트 항목 설명 — 0.1.x 런처는 이 항목을 Firmware 목록에 보여 주므로 설치하면 무엇이 되는지 적는다
+const LAUNCHER_ENTRY_DESC = "런처 업데이트: 설치하면 이 런처로 바뀝니다 (설치된 앱은 지워지고 Wi-Fi·데이터는 남음)";
+const LAUNCHER_ENTRY_DESC_EN = "Launcher update: installing replaces the launcher (removes the installed app; Wi-Fi and data stay)";
+
+/**
+ * 런처 카탈로그(manifest.launcher.json)의 firmwares 를 manifest 항목에서 만든다.
+ * 앱 항목 뒤에 런처 항목(type "launcher", factory 오프셋 이미지)을 하나 붙인다 — 런처 Info 메뉴의 업데이트용.
+ */
+function catalogFirmwares(meta, projects) {
+  const { board, layout, baseUrl } = meta.launcherCatalog;
+  const entry = (p) => {
+    const app = p.images.find((image) => image.offset === APP_OFFSET);
+    const chip = chipOfImage(app.path);
+    if (!chip) throw new Error(`${p.id}: 앱 이미지 헤더에서 칩을 알 수 없습니다.`);
+    const launcher = p.kind === "launcher";
+    return {
+      id: launcher ? "esp-launcher" : p.id,
+      ...(launcher ? { type: "launcher" } : {}),
+      name: p.name,
+      nameEn: p.nameEn,
+      version: p.version,
+      chip,
+      board,
+      layout,
+      url: baseUrl + app.path,
+      size: app.size,
+      sha256: app.sha256,
+      desc: launcher ? LAUNCHER_ENTRY_DESC : p.description,
+      descEn: launcher ? LAUNCHER_ENTRY_DESC_EN : p.descriptionEn,
+    };
+  };
+  return [
+    ...projects.filter((p) => p.kind !== "launcher").map(entry),
+    ...projects.filter((p) => p.kind === "launcher").map(entry),
+  ];
+}
+
+function writeCatalog(meta, projects) {
+  const firmwares = catalogFirmwares(meta, projects);
+  let updated = new Date().toISOString().slice(0, 10);
+  try {
+    const prev = readJson(CATALOG_PATH);
+    // 목록이 그대로면 날짜도 그대로 둬 불필요한 변경을 만들지 않는다
+    if (JSON.stringify(prev.firmwares) === JSON.stringify(firmwares)) updated = prev.updated;
+  } catch {
+    /* 처음 생성 */
+  }
+  fs.writeFileSync(CATALOG_PATH, `${JSON.stringify({ schema: 1, updated, firmwares }, null, 2)}\n`);
+  return firmwares.length;
+}
+
+function gitHead() {
+  try {
+    const head = fs.readFileSync(path.join(ROOT, ".git", "HEAD"), "utf8").trim();
+    if (head.startsWith("ref: ")) {
+      return fs.readFileSync(path.join(ROOT, ".git", head.slice(5)), "utf8").trim();
+    }
+    return head;
+  } catch {
+    return null;
+  }
+}
+
+function pad(value, width) {
+  const s = String(value);
+  return s + " ".repeat(Math.max(0, width - s.length));
+}
+
+function formatBytes(bytes) {
+  return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
+}
+
+function validateCommittedManifest(meta) {
+  const errors = [];
+  if (!fs.existsSync(MANIFEST_PATH)) {
+    return [`manifest.json 이 없습니다: ${path.relative(ROOT, MANIFEST_PATH)}`];
+  }
+  let manifest;
+  try {
+    manifest = readJson(MANIFEST_PATH);
+  } catch (error) {
+    return [`manifest.json 파싱 실패: ${error.message}`];
+  }
+  if (manifest.schemaVersion !== 1) errors.push(`지원하지 않는 schemaVersion: ${manifest.schemaVersion}`);
+  if (!Array.isArray(manifest.projects)) return [...errors, "projects 배열이 없습니다."];
+
+  const metaIds = new Set(meta.projects.map((p) => p.id));
+  const ids = new Set();
+  for (const project of manifest.projects) {
+    if (!metaIds.has(project.id)) errors.push(`projects.json 에 없는 프로젝트: ${project.id}`);
+    if (ids.has(project.id)) errors.push(`중복 프로젝트 id: ${project.id}`);
+    ids.add(project.id);
+
+    if (!Array.isArray(project.images) || project.images.length === 0) {
+      errors.push(`${project.id}: images 가 비어 있습니다.`);
+      continue;
+    }
+    const offsets = new Set();
+    for (const image of project.images) {
+      if (offsets.has(image.offset)) errors.push(`${project.id}: 중복 오프셋 ${image.offset}`);
+      offsets.add(image.offset);
+      const abs = path.join(ROOT, image.path);
+      if (!fs.existsSync(abs)) {
+        errors.push(`${project.id}: 파일 없음 ${image.path}`);
+        continue;
+      }
+      const buf = fs.readFileSync(abs);
+      if (buf.length !== image.size) {
+        errors.push(`${project.id}: 크기 불일치 ${image.path} (${buf.length} != ${image.size})`);
+      }
+      if (sha256(buf) !== image.sha256) {
+        errors.push(`${project.id}: sha256 불일치 ${image.path}`);
+      }
+    }
+  }
+  for (const id of metaIds) {
+    if (!ids.has(id)) errors.push(`manifest 에 누락된 프로젝트: ${id} (export 여부 확인)`);
+  }
+  if (errors.length === 0) errors.push(...validateCatalog(meta, manifest.projects));
+  return errors;
+}
+
+/** manifest.launcher.json 이 manifest.json 에서 만든 결과와 같은가 (수집 후 다시 만들지 않은 경우를 잡는다) */
+function validateCatalog(meta, projects) {
+  if (!meta.launcherCatalog) return [];
+  let catalog;
+  try {
+    catalog = readJson(CATALOG_PATH);
+  } catch (error) {
+    return [`manifest.launcher.json 읽기 실패: ${error.message}`];
+  }
+  if (catalog.schema !== 1) return [`manifest.launcher.json: 지원하지 않는 schema ${catalog.schema}`];
+  if (JSON.stringify(catalog.firmwares) !== JSON.stringify(catalogFirmwares(meta, projects))) {
+    return ["manifest.launcher.json 이 manifest.json 과 맞지 않습니다 (전체 수집으로 다시 생성)"];
+  }
+  return [];
+}
+
+/**
+ * firmware/clients.json(PC 클라이언트 다운로드 목록) 검증
+ * - 프로젝트가 projects.json 에 있고, 플랫폼·권한 이름이 정해진 값이며,
+ * - 프로젝트 폴더의 PyInstaller spec 의 APP_NAME / VERSION 과 일치해야 한다 (Release 파일명과 태그가 여기서 정해짐).
+ */
+function validateClients(meta) {
+  if (!fs.existsSync(CLIENTS_PATH)) return [];
+  let data;
+  try {
+    data = readJson(CLIENTS_PATH);
+  } catch (error) {
+    return [`clients.json 파싱 실패: ${error.message}`];
+  }
+  if (data.schemaVersion !== 1 || !Array.isArray(data.clients)) {
+    return ["clients.json 형식이 올바르지 않습니다 (schemaVersion 1, clients 배열)."];
+  }
+
+  const errors = [];
+  const metaIds = new Set(meta.projects.map((p) => p.id));
+  for (const client of data.clients) {
+    const id = client.project;
+    if (!metaIds.has(id)) {
+      errors.push(`clients.json: projects.json 에 없는 프로젝트 ${id}`);
+      continue;
+    }
+    if (!Array.isArray(client.platforms) || client.platforms.length === 0) {
+      errors.push(`clients.json: ${id} platforms 가 비어 있습니다.`);
+    } else {
+      for (const platform of client.platforms) {
+        if (!CLIENT_PLATFORMS.has(platform)) errors.push(`clients.json: ${id} 알 수 없는 플랫폼 ${platform}`);
+      }
+    }
+    for (const permission of client.permissions ?? []) {
+      if (!CLIENT_PERMISSIONS.has(permission)) errors.push(`clients.json: ${id} 알 수 없는 권한 ${permission}`);
+    }
+    const specs = findSpecs(path.join(ROOT, id));
+    if (specs.length !== 1) {
+      errors.push(`clients.json: ${id} 폴더에 .spec 파일이 정확히 1개여야 합니다 (발견 ${specs.length})`);
+      continue;
+    }
+    const spec = fs.readFileSync(specs[0], "utf8");
+    const app = spec.match(/^APP_NAME = "([^"]+)"/m)?.[1];
+    const version = spec.match(/^VERSION = "([^"]+)"/m)?.[1];
+    if (app !== client.app) errors.push(`clients.json: ${id} app(${client.app}) ≠ spec APP_NAME(${app})`);
+    if (version !== client.version) {
+      errors.push(`clients.json: ${id} version(${client.version}) ≠ spec VERSION(${version})`);
+    }
+  }
+  return errors;
+}
+
+function findSpecs(dir) {
+  const found = [];
+  const stack = [dir];
+  while (stack.length) {
+    const current = stack.pop();
+    for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+      const full = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        if (!["build", "dist", ".git", "node_modules", "__pycache__"].includes(entry.name)) stack.push(full);
+      } else if (entry.name.endsWith(".spec")) {
+        found.push(full);
+      }
+    }
+  }
+  return found;
+}
+
+function main() {
+  const meta = readJson(META_PATH);
+
+  if (CHECK) {
+    const errors = [...validateCommittedManifest(meta), ...validateClients(meta)];
+    if (errors.length) {
+      console.error("❌ firmware manifest 검증 실패");
+      for (const error of errors) console.error(`  - ${error}`);
+      process.exit(1);
+    }
+    console.log(`✅ firmware manifest 검증 통과 (${meta.projects.length}개 프로젝트)`);
+    return;
+  }
+
+  const projects = PROJECT_FILTER
+    ? meta.projects.filter((project) => project.id === PROJECT_FILTER)
+    : meta.projects;
+  if (projects.length === 0) {
+    console.error(`❌ 알 수 없는 프로젝트: ${PROJECT_FILTER}`);
+    process.exit(1);
+  }
+
+  const collected = [];
+  const skipped = [];
+  const stale = [];
+
+  console.log("프로젝트별 export 수집");
+  console.log("─".repeat(96));
+  for (const project of projects) {
+    const result = project.kind === "launcher" ? collectLauncher(project) : collectProject(project);
+    if (!result.ok) {
+      skipped.push({ project, reason: result.reason });
+      console.log(`${pad(project.id, 30)} ${pad("SKIP", 6)} ${result.reason}`);
+      continue;
+    }
+    collected.push(result.entry);
+    if (result.stale) stale.push(result.entry.id);
+    console.log(
+      `${pad(project.id, 30)} ${pad("OK", 6)} ${pad(formatBytes(result.entry.images.reduce((sum, i) => sum + i.size, 0)), 10)} ${result.entry.flash.mode}/${result.entry.flash.freq}/${result.entry.flash.size}${result.stale ? `  ⚠️ ${result.staleNote ?? "소스가 바이너리보다 최신"}` : ""}`,
+    );
+  }
+
+  collected.sort((a, b) => a.order - b.order);
+  const manifest = {
+    schemaVersion: 1,
+    generatedAt: new Date().toISOString(),
+    chip: meta.chip,
+    board: meta.board,
+    flashDefaults: meta.flashDefaults,
+    projects: collected,
+  };
+  fs.writeFileSync(MANIFEST_PATH, `${JSON.stringify(manifest, null, 2)}\n`);
+
+  // 제외된 프로젝트의 이전 산출물 정리 (런처 번들 폴더는 원본이므로 지우지 않는다)
+  for (const { project } of skipped) {
+    if (!PROJECT_FILTER && project.kind !== "launcher") {
+      fs.rmSync(path.join(ROOT, "firmware", project.id), { recursive: true, force: true });
+    }
+  }
+  const catalogCount = !PROJECT_FILTER && meta.launcherCatalog ? writeCatalog(meta, collected) : null;
+
+  console.log("─".repeat(96));
+  console.log(`✅ ${collected.length}개 프로젝트 → ${toPosix(path.relative(ROOT, MANIFEST_PATH))}`);
+  if (catalogCount !== null) console.log(`✅ 런처 목록 ${catalogCount}개 → ${toPosix(path.relative(ROOT, CATALOG_PATH))}`);
+  if (skipped.length) console.log(`ℹ️  ${skipped.length}개 프로젝트는 export가 없어 제외되었습니다.`);
+  if (stale.length) {
+    console.log(`⚠️  바이너리가 최신 소스가 아닙니다. 다시 export 하세요: ${stale.join(", ")}`);
+  }
+}
+
+main();

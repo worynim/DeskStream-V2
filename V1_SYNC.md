@@ -8,13 +8,15 @@ DeskStream(V1, `../DeskStream`)의 변경을 V2에 맞춰 반영할 때 쓰는 �
 
 ```sync
 base: 9c96d88
-exclude: web firmware tools .github Chiptune_Buzzer I2C_Scanner
+exclude: firmware .github Chiptune_Buzzer I2C_Scanner
 hold: GPS_DASH
 ```
 
 - `base` — **동기화 기준 V1 커밋.** 이 커밋까지의 V1 변경은 V2에 반영됐다. 반영을 마치면
   `bash scripts/v1-sync.sh set-base`로 V1 HEAD로 올린다.
-- `exclude` — V2 대상 아님 (웹 플래셔 `web/`·`firmware/`·`tools/`·`.github/`, 테스트용 앱).
+- `exclude` — V2 대상 아님 (V1 펌웨어 바이너리 `firmware/`, `.github/`, 테스트용 앱).
+  웹 플래셔 `web/`·`tools/`는 V2에도 있어 apply로 반영한다. V1 `firmware/projects.json`·`clients.json`의 변경(설명·PC 클라이언트 버전)은
+  V2 파일에 손으로 옮기고, 런처 번들은 esp-launcher에서 V2 보드(`deskstream_v2_c3`)로 따로 내보낸다.
 - `hold` — 이식 보류 (GPS_DASH: 하드웨어 준비 후 BTN3 공유 처리 설계 필요).
 - 위 목록에 없고 V2에도 없는 V1 폴더는 **미이식 앱**으로 표시된다 — 이식할지 먼저 정한다.
 
@@ -24,7 +26,7 @@ V2 각 앱이 V1의 어느 버전에서 이식·동기화됐는지 기록한다.
 
 | 앱 | V1 기준 | V2 버전 |
 |:--|:--|:--|
-| DeskStreamCore → DeskStreamV2Core | 0.6.1 | 0.8.0 |
+| DeskStreamCore → DeskStreamV2Core | 0.7.0 | 0.9.0 |
 | OLED_Wide_test | 1.3.1 | 1.4.1 |
 | Game_Of_Life | 1.1.1 | 1.2.0 |
 | Universal_Timer | 1.3.0 | 1.4.0 |
@@ -40,6 +42,8 @@ V2 각 앱이 V1의 어느 버전에서 이식·동기화됐는지 기록한다.
 | Sound_Visualizer_4_OLEDs | 3.6.0 | 3.7.0 |
 | Wireless_Analyzer | 0.5.1 | 0.6.0 |
 | Page_Turner | 1.1.0 | 1.2.0 |
+| 웹 플래셔 (`web/`) | 1.9.0 | 1.10.0 |
+| 런처 번들 (esp-launcher, 보드 `deskstream_v2_c3`) | 0.2.1 (`deskstream_c3`) | 0.3.0 |
 
 - PC 쪽(`Stats_Monitor/client_py`, `Screen_To_OLEDs/` 파이썬, `Agent_Monitor/bridge_py`·`p0_spike`)은
   V1과 같은 파일이라 패치가 그대로 적용된다.
@@ -53,3 +57,4 @@ V2 각 앱이 V1의 어느 버전에서 이식·동기화됐는지 기록한다.
 | 2026-11-17 | ~`69afbac` (v4.40.1) | 첫 이식 |
 | 2026-11-19 | `69afbac`..`1779bab` (v4.42.0) | Agent_Monitor PC 데몬 0.8.0, Universal_Timer 1.3.0. `89ec08a`(v4.41.1)는 웹 플래셔만 바꿔 대상 아님 |
 | 2026-11-20 | `1779bab`..`9c96d88` (v4.44.0) | Page_Turner 1.1.0 이식(V2 1.2.0). 라이브러리 README 변경은 V2 README "사용 중인 스케치"에 반영 |
+| 2026-11-24 | `9c96d88`..`3913776` (v4.48.1) 중 일부 | 웹 플래셔 1.9.0·런처 연동(`a193d64`~`3913776`) → V2 웹 플래셔 1.10.0·런처 0.3.0(V2 보드)·V2Core 0.9.0. Agent_Monitor 0.8.1·0.8.2(`37bd8df`·`7cea10b`)는 아직이라 기준 커밋은 올리지 않음 |

@@ -2,6 +2,12 @@
 
 > v0.6.1 이하는 DeskStream(V1) 저장소 `DeskStreamCore`의 이력이다.
 
+## [v0.9.0] - 2026-11-24
+### 🚀 `ds::returnToLauncher()` — 런처로 돌아가기 (V1 v0.7.0 반영)
+- `sys/ds_launcher.*`: factory 파티션(런처 esp-launcher)이 있으면 다음 부팅을 런처로 정하고 재시작한다.
+  런처가 없거나 부팅 파티션을 바꾸지 못하면 아무것도 바꾸지 않고 `false` 를 돌려준다. V1 파일을 그대로 가져왔다.
+- 라이브러리에만 추가했다 — 아직 이 함수를 부르는 스케치는 없다 (런처 진입은 BTN1(GPIO 3)을 누른 채 리셋, 2초 유지).
+
 ## [v0.8.0] - 2026-11-17
 ### 🎤 마이크 핀 상수 추가
 - `ds_board.h`: `ds::kMicPin = 4`, `ds::kMicAdcChannel = 4`(ADC1_CH4). C3의 ADC2는 continuous(DMA) 모드를 지원하지 않아 마이크를 ADC1 핀에 둔다.

@@ -1,0 +1,211 @@
+# Release Notes - DeskStream V2 Web Flasher
+
+ESP32-C3 DeskStream V2 보드용 웹 플래셔 **https://worynim.github.io/DeskStream-V2/** 의 변경 이력입니다.
+
+> v1.9.0 이하는 DeskStream(V1) 저장소 웹 플래셔(https://worynim.github.io/DeskStream/)의 이력입니다.
+
+- 웹 앱: `web/` (Vite + TypeScript + esptool-js)
+- 펌웨어 소스: `firmware/manifest.json`
+- 배포: `main` push 시 `.github/workflows/deploy-web.yml`이 자동 빌드·배포
+- 검증: `node tools/collect-firmware.mjs --check`
+
+## 릴리즈 절차
+
+1. 이 파일(`web/RELEASE_NOTES.md`)에 새 버전 섹션을 추가합니다.
+2. `web/package.json`의 `version`을 갱신합니다.
+
+   ```bash
+   cd web
+   npm version 1.7.0 --no-git-tag-version
+   ```
+
+3. `main`에 push하면 GitHub Actions가 자동 배포합니다.
+   - 푸터의 릴리즈 노트 링크에 표시되는 버전은 `web/package.json`에서 자동 주입됩니다.
+
+---
+
+## [v1.10.0] - 2026-11-24
+
+### 🖥️ DeskStream V2 저장소로 이식
+
+- V1 웹 플래셔 1.9.0(V1 `3913776`)을 가져왔습니다. 플래시 동작(런처 자동 감지·앱만 ota_0에 굽기 포함)은 그대로입니다.
+- 배포 주소 `/DeskStream-V2/`, 제목·README·릴리즈 노트 링크를 V2 저장소로 바꿨습니다.
+- 프로젝트 목록은 V2로 옮긴 15개 앱과 V2 버전입니다. GPS_DASH는 V2 이식 보류라 뺐습니다.
+- **런처**: esp-launcher 0.3.0의 V2 보드(`deskstream_v2_c3`, SH1106 × 4, 진입 BTN1 = GPIO 3) 번들. 런처 카탈로그(`firmware/manifest.launcher.json`)는 V2 Pages를 가리킵니다.
+- **PC 클라이언트** 다운로드는 V1과 같은 코드라 V1 저장소 Release를 가리킵니다 (`config.ts` `CLIENT_RELEASE_REPOSITORY_URL`).
+- `tools/collect-firmware.mjs`: 공통 라이브러리 경로를 `DeskStreamV2Core`로 바꿨습니다(소스 최신 판정).
+
+## [v1.9.0] - 2026-11-23
+
+### 🚀 런처(esp-launcher) 항목 · 런처 자동 감지
+
+- 프로젝트 목록에 **런처 (esp-launcher)** 를 추가했습니다(`kind: "launcher"`). 런처 번들 4개 이미지(부트로더·파티션 테이블·빈 otadata·런처)를 굽습니다. 저장소에 프로젝트 폴더가 없어 README 링크는 표시하지 않습니다.
+- 일반 프로젝트를 구울 때(전체 지우기 끔) 보드의 파티션 테이블(0x8000)을 먼저 읽습니다. factory·ota_0·otadata 가 있으면 런처가 설치된 보드로 보고 **앱만 ota_0 에, boot_app0 를 otadata 에** 써서 런처를 남깁니다. 앱이 ota_0 보다 크면 쓰기 전에 멈추고 전체 지우기를 안내합니다.
+- 전체 지우기를 켜면 예전처럼 4개 이미지를 모두 씁니다(런처도 지워짐). 안내 문구(한국어/영어)에 이 내용을 더했습니다.
+
+## [v1.8.1] - 2026-11-15
+
+### ▶ 프로젝트 영상 링크
+
+- 상단 안내 칩 줄에 **프로젝트 영상 (YouTube)** 링크를 추가했습니다. 프로젝트 소개 영상 재생목록이 새 탭에서 열립니다(한국어/영어 문구).
+
+## [v1.8.0] - 2026-11-10
+
+### 🔐 PC 클라이언트 권한 설정 안내
+
+- 클라이언트 다운로드 영역에 **권한 설정** 안내를 추가했습니다(기본으로 펼침). 클라이언트마다 필요한 권한(`firmware/clients.json` 의 `permissions`)별로 어디서 켜는지와 권한이 없을 때 나타나는 증상을 보여 줍니다. 접속한 PC 의 OS 권한을 먼저 표시합니다.
+  - macOS: Bluetooth · 손쉬운 사용 · 화면 기록 · 로컬 네트워크 / Windows: 방화벽
+  - 서명하지 않은 앱이라 새 버전으로 바꾸면 macOS 권한이 풀릴 수 있다는 안내 포함
+- 프로젝트별 **처음 한 번만 할 설정** 안내를 추가했습니다(기본으로 펼침). Agent_Monitor: 트레이 메뉴 "Claude Code 훅 설치"를 컴퓨터마다 한 번 누르면 되고, 앱을 다시 켜거나 업데이트해도 유지된다는 내용.
+- "처음 실행 안내"는 Gatekeeper·SmartScreen 통과 방법만 남기고 권한 설명은 위 안내로 옮겼습니다.
+- `collect-firmware --check` 가 `permissions` 이름도 검증합니다.
+- 클라이언트 목록에 Agent_Monitor 0.6.1 · Screen_To_OLEDs 2.3.2 를 추가했습니다.
+
+## [v1.7.0] - 2026-11-10
+
+### 💻 PC 클라이언트 다운로드
+
+- PC 클라이언트가 필요한 프로젝트 카드에 **`💻 PC 앱`** 표시를 붙이고, 선택 패널에 macOS(Apple Silicon)·Windows(x64) 다운로드 버튼을 추가했습니다. 접속한 PC의 플랫폼 버튼을 먼저, 강조해서 보여줍니다.
+- 다운로드는 GitHub Release(`<프로젝트>-client-v<버전>` 태그)의 실행 파일로 연결됩니다. 목록은 `firmware/clients.json` 에서 읽고, 파일이 없거나 형식이 틀려도 펌웨어 플래시는 그대로 동작합니다.
+- 서명하지 않은 앱의 처음 실행 안내(macOS "그래도 열기", Windows SmartScreen)를 한국어/영어로 표시합니다.
+- `node tools/collect-firmware.mjs --check` 가 `clients.json` 도 검증합니다 (프로젝트 존재, 플랫폼 이름, PyInstaller spec 의 `APP_NAME`·`VERSION` 일치).
+
+## [v1.6.0] - 2026-10-21
+
+### ✨ Android WebUSB(CDC-ACM) 우회 플래시 모드
+
+- Android Chrome에서 **Web Serial 포트 목록에 USB 장치(ESP32-C3)가 보이지 않는 경우**를 위한 WebUSB 우회 경로를 추가했습니다.
+- 플래시 옵션에 **`USB(WebUSB) 모드`** 체크박스를 추가했습니다.
+  - `web-serial-polyfill`로 WebUSB 장치를 SerialPort처럼 사용합니다.
+  - 선택 시 `navigator.usb.requestDevice()`로 ESP32-C3(CDC-ACM)에 직접 연결합니다.
+  - WebUSB를 사용할 수 있는 브라우저에서만 옵션이 노출됩니다.
+  - Web Serial API 자체가 없는 브라우저에서는 해당 모드가 기본 활성화됩니다.
+- WebUSB 모드 안내 문구를 한국어/영어로 추가하고 사용 안내(guide)를 갱신했습니다.
+- README에 Android WebUSB 우회 모드 안내를 추가했습니다.
+- 커밋: `cd690d3`
+
+### 참고
+
+- WebUSB 모드는 **실험적 기능**입니다. Android 커널/드라이버가 CDC 인터페이스를 선점한 기기에서는 `Unable to claim interface` 오류가 날 수 있습니다.
+- 데스크톱에서는 기존 Web Serial 방식이 기본이며, WebUSB 모드를 체크하지 않으면 기존과 동일하게 동작합니다.
+
+## [v1.5.0] - 2026-10-21
+
+### 📱 스마트폰(Android) 지원 범위 반영
+
+- Android Chrome 148+에서 Web Serial(USB·Bluetooth)이 지원됨에 따라 안내 문구를 실제 지원 범위로 수정했습니다.
+  - 지원: Chrome/Edge 데스크톱, Android Chrome 148+ (USB OTG 어댑터 필요)
+  - 미지원: iPhone/iPad(Safari), Firefox Android, 인앱 브라우저(카카오톡·네이버 등)
+- `isSerialSupported()`를 `navigator.serial.requestPort` 함수 존재까지 확인하도록 보강하여, API가 없는 브라우저에서 잘못 활성화되지 않도록 했습니다.
+- README에 **“스마트폰에서 사용하기 (Android)”** 섹션을 추가했습니다.
+- 커밋: `93845a7`
+
+## [v1.4.0] - 2026-10-21
+
+### 🔗 프로젝트 카드 README 링크
+
+- 각 프로젝트 카드 우측 하단에 **`README ↗`** 링크를 추가했습니다. (GitHub README, 새 탭)
+- 카드 선택(button)과 README 링크(a)를 분리해 클릭 충돌을 제거했습니다.
+  - 카드는 `aria-pressed` 토글 버튼으로 정리
+  - README 링크에 `target="_blank"` / `rel="noopener noreferrer"` 적용
+- 언어 전환 시 링크 title/aria-label도 한국어/영어로 변경됩니다.
+- `web/src/config.ts`에서 저장소 URL과 README URL을 관리합니다.
+- 커밋: `f8bfbd7`
+
+## [v1.3.0] - 2026-10-21
+
+### 🌐 영어 UI 및 한국어/English 언어 전환
+
+- 페이지 우측 상단에 **한국어 / English** 언어 스위치를 추가했습니다.
+  - 선택값은 `localStorage`에 저장되어 새로고침·재방문 시 유지
+  - 저장값이 없으면 브라우저 언어 자동 감지 (`ko-*` → 한국어, 그 외 → English)
+- 전체 UI 문자열을 `web/src/i18n.ts`로 분리했습니다.
+  - 헤더·안내·가이드·옵션·버튼·상태·에러·진행률·로그 메시지
+  - 날짜·프로젝트 수 포맷
+- 프로젝트 이름·설명·안내문의 영어 번역을 `firmware/projects.json`의 `nameEn` / `descriptionEn` / `noteEn`으로 추가하고 manifest에 포함했습니다.
+  - 영어 필드가 없으면 한국어로 자동 폴백
+- 플래시 진행/로그 메시지도 현재 언어로 표시됩니다.
+- 커밋: `8cbfefa`
+
+## [v1.2.1] - 2026-10-21
+
+### ℹ️ 시스템 상태 모니터 호스트 앱 안내
+
+- 시스템 상태 모니터 선택 시 화면 스트리머와 동일한 형태로 **PC 호스트 앱 안내**를 표시합니다.
+  - “PC에서 `client_py/main.py`(호스트 앱)와 함께 사용합니다. BLE로 연결되며, 화면 회전·밝기 설정은 NVS에 저장됩니다.”
+- 커밋: `025c4c2`
+
+## [v1.2.0] - 2026-10-21
+
+### 🧹 프로젝트 정리 및 README 보강
+
+- **한글 시계 BB(`Hangeul_Clock_bitbang_i2c`) 웹 플래셔 제외**
+  - 1.3" SH1106 · 4-bus 회로 구성이 달라 플래셔 대상에서 제외
+  - `firmware/projects.json`, 펌웨어 바이너리, `firmware/manifest.json`에서 제거
+- 시스템 상태 모니터의 `EraseFlash=all` 안내 문구를 삭제하고 최신 빌드(`EraseFlash=none`)를 반영했습니다.
+- 플래셔 대상 프로젝트를 **11개**로 정리했습니다.
+- 루트 README에 웹 플래셔 상단 링크, 관련 파일 링크 표를 보강했습니다.
+- 커밋: `c01dc62`
+
+## [v1.1.0] - 2026-10-21
+
+### 🔁 플래시 후 자동 재부팅 수정
+
+- esptool-js 0.7.0의 `after("hard_reset")`이 ESP32-C3의 USB-Serial/JTAG에서 동작하지 않아, 플래시 후 칩이 stub에 머물던 문제를 수정했습니다.
+- esptool(Python)의 `--after watchdog-reset`과 동일한 **RTC WDT 리셋**을 적용했습니다.
+  - ESP32-C3/C2/S2/S3: RTC WDT 리셋
+  - 그 외 Espressif 내장 USB(VID `0x303A`): USB-JTAG 리셋 시퀀스
+  - UART 브리지: 클래식 EN 펄스
+- 성공 안내에 “자동으로 재부팅되지 않으면 RESET 버튼” 안내를 추가했습니다.
+- 커밋: `25bd4ce`
+
+## [v1.0.1] - 2026-10-21
+
+### 🛠️ GitHub Actions 빌드 수정
+
+- 클린 환경에서 `vite.config.ts`의 `process` 타입을 찾지 못해 `tsc`가 실패하던 문제를 수정했습니다.
+  - `@types/node` devDependency 추가
+  - 앱용 `tsconfig.json`과 `vite.config.ts`용 `tsconfig.node.json` 분리
+- 커밋: `cb16cd1`
+
+## [v1.0.0] - 2026-10-21
+
+### 🚀 최초 공개
+
+- Vite + TypeScript + esptool-js 0.7 기반 웹 플래셔와 **GitHub Pages 자동 배포**를 추가했습니다.
+- 12개 프로젝트 펌웨어 선택·플래시
+  - 표준 4파일 업로드 (bootloader `0x0` / partitions `0x8000` / boot_app0 `0xe000` / app `0x10000`)
+  - 기본은 NVS(WiFi·설정) 보존, **전체 지우기** 옵션 제공
+- 펌웨어 **SHA-256**(다운로드) + **MD5**(쓰기 후) 무결성 검증
+- 진행률·로그·에러 안내, BOOT+RESET 가이드, 지원 브라우저 감지
+- `tools/collect-firmware.mjs`: Arduino IDE export(`flash_args`)에서 필요한 `.bin`만 수집하고 `firmware/manifest.json` 생성·검증
+- `.gitignore`: 업로드용 `firmware/**/*.bin`만 추적, `build/`의 `.elf`/`.map` 등 대용량 산출물은 계속 무시
+- 커밋: `1adbc98`, `41c6a5d`
+
+---
+
+## 배포 펌웨어 목록
+
+> `firmware/manifest.json` 기준 현재 배포본입니다. Arduino IDE에서 다시 export한 뒤 `node tools/collect-firmware.mjs`를 실행하면 갱신됩니다.
+
+| 프로젝트 | 버전 |
+|---|---|
+| 스마트 정보 스테이션 | 2.9.3 |
+| GPS 대시보드 | 2.6.1 |
+| 사운드 비주얼라이저 | 3.4.1 |
+| 초광폭 OLED 테스트 | 1.2.1 |
+| 시스템 상태 모니터 | 1.5.1 |
+| DS DECK 매크로 패드 | 1.5.2 |
+| 화면 스트리머 (수신 펌웨어) | 2.2.1 |
+| 게임 오브 라이프 | 1.0.2 |
+| 한글 시계 | 2.10.0 |
+| 영어 시계 | 1.0.5 |
+| 중국어 시계 | 1.0.3 |
+| 범용 타이머 | 1.0.0 |
+
+## 알려진 제한사항
+
+- **Web Serial**: Chrome/Edge 데스크톱, Android Chrome 148+ (USB OTG 어댑터 필요). iPhone/iPad(Safari)·Firefox Android·인앱 브라우저는 지원하지 않습니다.
+- **Android USB 장치가 Web Serial 목록에 안 보이는 경우**: `USB(WebUSB) 모드`를 사용해 보세요. (v1.6.0, 실험적)
+- **GitHub Pages 캐시**: 페이지가 최대 10분간 캐시될 수 있습니다. 변경 직후에는 강력 새로고침(Cmd/Ctrl+Shift+R)을 사용하세요.
+- `Smart_Info_Station`·`DS_DECK`은 OTA 없이 app0 2.5MB를 쓰는 **DeskStream 공통 파티션 레이아웃** 빌드입니다. spiffs를 `default` 스킴과 같은 `0x290000`에 두어, 다른 프로젝트와 펌웨어를 바꿔 올려도 저장된 파일(폰트·매크로 설정)이 보존됩니다.

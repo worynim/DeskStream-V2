@@ -283,7 +283,7 @@ server.begin();
 5. Arduino 의존 없는 순수 로직은 별도 `.h/.cpp`로 분리해 `test/`에 호스트(g++) 테스트를 둔다.
 6. `README.md`(기능·버튼·파일 구성·빌드 설정)와 `RELEASE_NOTES.md` 작성.
 7. 루트 `README.md` 프로젝트 목록, 루트 `RELEASE_NOTES.md`에 항목 추가.
-8. 웹 플래셔(V1 저장소의 `web/`·`firmware/`·`tools/`)는 아직 이 저장소에 없다.
+8. 웹 플래셔에 올리려면 `firmware/projects.json`에 항목을 넣고 export 빌드 후 `node tools/collect-firmware.mjs` (README "웹 플래셔").
 
 ### V1 프로젝트를 옮길 때
 

@@ -13,6 +13,8 @@ DeskStream(V1) 저장소의 구조(공통 라이브러리 + 프로젝트별 스�
 - **Buzzer**: GPIO 6 · **MIC**: GPIO 4 · **NeoPixel**: GPIO 8 · **GPS**: RX 20 / TX 21
 - 상세 정보: [HARDWARE.md](./HARDWARE.md)
 
+> 🌐 **웹 플래셔**: [https://worynim.github.io/DeskStream-V2/](https://worynim.github.io/DeskStream-V2/) — USB로 연결한 V2 보드에 원하는 프로젝트를 브라우저에서 바로 업로드합니다. ([사용법](#-웹-플래셔-web-flasher) · [소스](./web/))
+
 ## 📁 프로젝트
 | 프로젝트 | 버전 | 상태 |
 |:--|:--|:--|
@@ -45,8 +47,61 @@ bash scripts/v1-sync.sh                    # 반영할 V1 커밋과 바뀐 폴�
 bash scripts/v1-sync.sh apply <앱 폴더>    # 그 앱의 V1 변경을 3-way로 적용 (겹치는 곳은 충돌 표시)
 ```
 
+## 🌐 웹 플래셔 (Web Flasher)
+
+**https://worynim.github.io/DeskStream-V2/** — Chrome/Edge 데스크톱 또는 Android Chrome 148+(USB OTG)에서 V2 보드에 15개 프로젝트를 바로 플래시합니다.
+V1 웹 플래셔(1.9.0)를 그대로 가져와 V2 앱·주소만 바꿨습니다 — 사용법은 V1 [README 웹 플래셔](https://github.com/worynim/DeskStream#-웹-플래셔-web-flasher)와 같습니다.
+
+- 기본 플래시는 NVS(WiFi·설정) 보존, 필요하면 "전체 지우기". SHA-256(다운로드)·MD5(쓰기 후) 검증 후 자동 재부팅.
+- V1 보드(0.96" SSD1306)용 펌웨어와 섞이지 않도록 V2 보드에는 이 주소만 씁니다. GPS_DASH는 V2 이식 전이라 목록에 없습니다.
+- PC 클라이언트(Stats_Monitor·Screen_To_OLEDs·Agent_Monitor) 다운로드는 V1과 같은 프로그램이라 V1 저장소 Release를 가리킵니다.
+
+### 🚀 런처 (esp-launcher)
+
+PC 없이 보드에서 프로젝트를 바꿀 수 있게 해 주는 런처입니다. 런처는 factory 영역에, 고른 프로젝트는 앱 영역(ota_0)에 들어갑니다.
+
+1. 웹 플래셔에서 **런처 (esp-launcher)** 를 골라 한 번 굽습니다. 지금 앱은 지워지고 Wi-Fi 설정·글꼴(LittleFS)은 남습니다.
+2. 런처 화면의 **Wi-Fi** 에서 폰으로 QR을 찍어 설정 포털에 접속하고 AP를 저장합니다 (앱과 같은 저장소라 앱에서도 그대로 씁니다).
+3. **Firmware** 에서 목록([`firmware/manifest.launcher.json`](./firmware/manifest.launcher.json))을 받아 프로젝트를 골라 설치하면 그 앱으로 재부팅합니다.
+4. 런처로 돌아가려면 **BTN1(GPIO 3)을 누른 채 RESET** 을 눌렀다 떼고 BTN1을 **2초** 더 누르고 있습니다.
+5. 런처가 새로 나오면 런처의 **Info → Update** 로 기기에서 바로 업데이트합니다 (설치된 앱은 지워지므로 다시 설치).
+
+- 런처가 설치된 보드에 웹 플래셔로 다른 프로젝트를 구우면 **런처는 남기고 앱만** ota_0에 설치합니다. 런처를 없애려면 **전체 지우기**를 켜고 굽습니다.
+- 앱 코드에서 런처로 돌아가려면 DeskStreamV2Core 0.9.0의 `ds::returnToLauncher()`를 부릅니다.
+- 런처 소스는 별도 저장소 `esp-launcher`(V2 보드 ID `deskstream_v2_c3`)에 있습니다. 배포본은 `tools/mkbundle.py deskstream_v2_c3 <DeskStream_V2>/firmware/Launcher` 로 내보낸 번들입니다.
+
+### 관련 파일
+
+| 항목 | 링크 |
+|---|---|
+| 웹 플래셔 앱 (Vite + TypeScript + esptool-js) · 릴리즈 노트 | [`web/`](./web/) · [`web/RELEASE_NOTES.md`](./web/RELEASE_NOTES.md) |
+| 펌웨어 수집·manifest 생성 스크립트 | [`tools/collect-firmware.mjs`](./tools/collect-firmware.mjs) |
+| 프로젝트 표시 메타데이터 (이름·버전·아이콘·설명) | [`firmware/projects.json`](./firmware/projects.json) |
+| 배포된 펌웨어 목록·오프셋·SHA-256 / 런처용 목록 (자동 생성) | [`firmware/manifest.json`](./firmware/manifest.json) · [`firmware/manifest.launcher.json`](./firmware/manifest.launcher.json) |
+| 웹 플래셔에 표시할 PC 클라이언트 목록 | [`firmware/clients.json`](./firmware/clients.json) |
+| GitHub Pages 배포 워크플로 | [`.github/workflows/deploy-web.yml`](./.github/workflows/deploy-web.yml) |
+
+### 펌웨어 업데이트 방법
+
+1. 앱을 export 빌드합니다 — Arduino IDE `Sketch → Export Compiled Binary`, 또는 같은 결과를 내는 arduino-cli (`partitions.csv`가 있는 앱은 `:PartitionScheme=huge_app`):
+
+   ```bash
+   arduino-cli compile --fqbn esp32:esp32:nologo_esp32c3_super_mini --build-path <저장소 밖 임시 폴더> --export-binaries <스케치폴더>
+   ```
+
+2. 저장소 루트에서 수집 스크립트를 실행해 `firmware/<project>/`와 `firmware/manifest.json`·`manifest.launcher.json`을 갱신합니다.
+
+   ```bash
+   node tools/collect-firmware.mjs
+   ```
+
+3. `firmware/` 변경분을 커밋해 `main`에 push → GitHub Actions가 웹 플래셔를 자동 빌드·배포합니다.
+
+- 로컬 미리보기: `cd web && npm install && npm run dev` → http://localhost:5173/DeskStream-V2/
+- 최초 1회: 저장소 **Settings → Pages → Source**를 **GitHub Actions**로 지정합니다.
+
 ## 📚 공통 라이브러리
-- [libraries/DeskStreamV2Core](./libraries/DeskStreamV2Core/) (v0.8.0) — 화면 엔진(4버스 동시 BitBang)·버튼·부저·WiFi·NTP·설정 저장.
+- [libraries/DeskStreamV2Core](./libraries/DeskStreamV2Core/) (v0.9.0) — 화면 엔진(4버스 동시 BitBang)·버튼·부저·WiFi·NTP·설정 저장.
   V1 `DeskStreamCore`와 API가 같고(`namespace ds`), 보드 정의와 화면 전송 계층만 V2용입니다.
   이름이 달라 V1·V3 라이브러리와 스케치북에 함께 둘 수 있습니다 — 스케치는 `#include <DeskStreamV2Core.h>`.
 - 새 프로젝트를 만들거나 V1 프로젝트를 옮길 때는 [AI_GUIDE.md](./AI_GUIDE.md)를 먼저 봅니다.

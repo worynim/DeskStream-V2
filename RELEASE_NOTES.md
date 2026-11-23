@@ -1,5 +1,18 @@
 # DeskStream V2 Release Notes
 
+## [v0.17.0] - 2026-11-24
+### 🌐 웹 플래셔 · 🚀 런처(esp-launcher) 추가
+- **웹 플래셔 1.10.0** (`web/`·`tools/collect-firmware.mjs`·`firmware/`·`.github/workflows/deploy-web.yml`): V1 1.9.0(V1 `3913776`)을 가져와
+  주소(`https://worynim.github.io/DeskStream-V2/`)·제목·링크를 V2로, 수집 스크립트의 라이브러리를 `DeskStreamV2Core`로 바꿨다.
+  목록은 V2 15개 앱(GPS_DASH 제외)과 런처. PC 클라이언트 다운로드는 V1 저장소 Release를 가리킨다.
+- 펌웨어 15개를 `nologo_esp32c3_super_mini`(`partitions.csv`가 있는 앱은 `huge_app`)로 export 빌드해 수집했다.
+  모든 앱이 런처 설치 슬롯 ota_0(1,572,864 B)에 들어간다 — 가장 큰 DS_DECK 1,424,592 B.
+- **런처 0.3.0** (`firmware/Launcher/`): esp-launcher에 V2 보드 `deskstream_v2_c3`를 추가해 내보낸 번들 — SH1106 × 4(SCL 0 공유·SDA 2/1/10/7 SW I2C),
+  버튼 3/5/21/9, 진입 BTN1(GPIO 3)을 누른 채 리셋 후 2초. 레이아웃은 V1과 같은 `ds4m-v1`, 카탈로그는 V2 Pages의 `firmware/manifest.launcher.json`.
+- `DeskStreamV2Core` v0.9.0: `ds::returnToLauncher()` (V1 DeskStreamCore 0.7.0 반영, 라이브러리에만 추가).
+- 검증: `collect-firmware.mjs --check` 통과, 웹 빌드·로컬 미리보기 확인, 라이브러리 호스트 테스트 통과, 런처 C3 두 보드 빌드·호스트 테스트 통과.
+  **실기 확인은 아직** (런처 설치·SH1106 화면·버튼·BTN1 진입·앱 설치는 V2 보드에서 확인 필요).
+
 ## [v0.16.0] - 2026-11-20
 ### 📖 Page_Turner 이식 · V1 동기화 도구
 - `Page_Turner` v1.2.0: V1 v1.1.0(V1 v4.44.0, `9c96d88`)을 DeskStreamV2Core로 이식. 코드 변경은 include·주석·버전 문자열과
